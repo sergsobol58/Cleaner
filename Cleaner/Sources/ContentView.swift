@@ -3,14 +3,36 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var model = CleanerModel()
+    @State private var section: Section = .files
+
+    private enum Section: String, CaseIterable {
+        case files = "Файлы"
+        case simulators = "Симуляторы"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
-            content
+            Picker("", selection: $section) {
+                ForEach(Section.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .padding(10)
+
             Divider()
-            footer
+
+            switch section {
+            case .files:
+                VStack(spacing: 0) {
+                    content
+                    Divider()
+                    footer
+                }
+            case .simulators:
+                SimulatorsView(model: model)
+            }
         }
-        .frame(minWidth: 520, minHeight: 380)
+        .frame(minWidth: 560, minHeight: 440)
         .task { await model.scan() }
         .sheet(isPresented: $model.isConfirming) { confirmation }
     }

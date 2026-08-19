@@ -27,6 +27,15 @@ final class CatalogTests: XCTestCase {
                        ["com.microsoft.VSCode.ShipIt", "Slack.ShipIt"])
     }
 
+    /// Сторож: в CleanerKit был объявлен собственный оператор "/", из-за
+    /// которого обычное деление становилось неоднозначным у всех, кто
+    /// импортирует модуль. Этот тест ловит его возвращение.
+    func testModuleDoesNotBreakArithmetic() {
+        let bytes: Int64 = 8_388_608
+        XCTAssertEqual(bytes / 1_048_576, 8)
+        XCTAssertEqual(Double(3) / Double(2), 1.5)
+    }
+
     func testEveryRootLivesInsideGivenHome() {
         for category in categories() {
             for root in category.roots {

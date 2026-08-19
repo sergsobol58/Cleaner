@@ -32,16 +32,16 @@ public enum Catalog {
                 id: "derivedData",
                 title: "Xcode DerivedData",
                 consequence: "Первая сборка будет дольше, проекты переиндексируются",
-                roots: [home / "Library/Developer/Xcode/DerivedData"]
+                roots: [home.appending(path: "Library/Developer/Xcode/DerivedData")]
             ),
             CleanupCategory(
                 id: "deviceSupport",
                 title: "Символы подключённых устройств",
                 consequence: "Перекачается при следующем подключении устройства",
                 roots: [
-                    home / "Library/Developer/Xcode/iOS DeviceSupport",
-                    home / "Library/Developer/Xcode/watchOS DeviceSupport",
-                    home / "Library/Developer/Xcode/tvOS DeviceSupport",
+                    home.appending(path: "Library/Developer/Xcode/iOS DeviceSupport"),
+                    home.appending(path: "Library/Developer/Xcode/watchOS DeviceSupport"),
+                    home.appending(path: "Library/Developer/Xcode/tvOS DeviceSupport"),
                 ]
             ),
             CleanupCategory(
@@ -49,27 +49,27 @@ public enum Catalog {
                 title: "Кэши пакетных менеджеров",
                 consequence: "Первая установка пакетов будет дольше",
                 roots: [
-                    home / ".npm/_cacache",
-                    home / "Library/Caches/Yarn",
-                    home / "Library/pnpm/store",
-                    home / "Library/Caches/pip",
-                    home / "Library/Caches/CocoaPods",
-                    home / ".gradle/caches",
+                    home.appending(path: ".npm/_cacache"),
+                    home.appending(path: "Library/Caches/Yarn"),
+                    home.appending(path: "Library/pnpm/store"),
+                    home.appending(path: "Library/Caches/pip"),
+                    home.appending(path: "Library/Caches/CocoaPods"),
+                    home.appending(path: ".gradle/caches"),
                 ]
             ),
             CleanupCategory(
                 id: "xcodeBuildMCP",
                 title: "XcodeBuildMCP workspaces",
                 consequence: "Пересоздастся при следующей сборке через MCP",
-                roots: [home / "Library/Developer/XcodeBuildMCP/workspaces"]
+                roots: [home.appending(path: "Library/Developer/XcodeBuildMCP/workspaces")]
             ),
             CleanupCategory(
                 id: "swiftPM",
                 title: "Кэш SwiftPM и документации",
                 consequence: "Пакеты и документация перекачаются",
                 roots: [
-                    home / "Library/Caches/org.swift.swiftpm",
-                    home / "Library/Developer/Xcode/DocumentationCache",
+                    home.appending(path: "Library/Caches/org.swift.swiftpm"),
+                    home.appending(path: "Library/Developer/Xcode/DocumentationCache"),
                 ]
             ),
             CleanupCategory(
@@ -81,13 +81,13 @@ public enum Catalog {
                     "Google", "Homebrew", "ms-playwright", "ms-playwright-go",
                     "typescript", "node-gyp", "electron", "Cypress",
                     "com.openai.codex", "antigravity-updater",
-                ].map { home / "Library/Caches/\($0)" }
+                ].map { home.appending(path: "Library/Caches/\($0)") }
             ),
             CleanupCategory(
                 id: "appUpdaters",
                 title: "Загруженные обновления приложений",
                 consequence: "Установщики уже применённых обновлений, скачаются заново при нужде",
-                roots: listing(home / "Library/Caches")
+                roots: listing(home.appending(path: "Library/Caches"))
                     .filter { $0.lastPathComponent.hasSuffix(".ShipIt") }
             ),
         ]
@@ -118,7 +118,7 @@ public enum Catalog {
             "Library/Developer/Xcode/Archives",        // собранные релизы
             "Library/Developer/Xcode/UserData",        // схемы, сниппеты, брейкпоинты
             ".ssh",
-        ].map { home / $0 }
+        ].map { home.appending(path: $0) }
     }
 
     public static func pathGuard(
@@ -130,10 +130,3 @@ public enum Catalog {
     }
 }
 
-infix operator /: AdditionPrecedence
-
-extension URL {
-    static func / (base: URL, path: String) -> URL {
-        base.appending(path: path, directoryHint: .isDirectory)
-    }
-}
