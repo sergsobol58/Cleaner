@@ -72,9 +72,26 @@ final class CleanerModel {
         acknowledgedIrreversible && !(selectedDevices.isEmpty && selectedRuntimes.isEmpty)
     }
 
-    /// Неиспользуемое: устройство без своего runtime и runtime без устройств.
-    var unusedDevices: [SimulatorDevice] { devices.filter(\.isUnavailable) }
-    var unusedRuntimes: [SimulatorRuntime] { runtimes.filter { $0.deviceCount == 0 && $0.isDeletable } }
+    /// Неиспользуемое: нет runtime, либо каталогом не пользовались более
+    /// SimulatorTriage.staleAfterDays дней; плюс runtime без устройств.
+    var unusedDevices: [(device: SimulatorDevice, reason: SimulatorTriage.Reason)] {
+        SimulatorTriage.unusedDevices(devices)
+    }
+
+    var unusedRuntimes: [SimulatorRuntime] { SimulatorTriage.unusedRuntimes(runtimes) }
+
+    var hasUnused: Bool { !unusedDevices.isEmpty || !unusedRuntimes.isEmpty }
+
+    /// Почему предлагать нечего. Погашенная кнопка без объяснения — загадка.
+    var unusedExplanation: String {
+        guard simulatorsLoaded else { return "" }
+        if hasUnused {
+            let bytes = unusedDevices.reduce(0) { $0 + $1.device.sizeBytes }
+                + unusedRuntimes.reduce(0) { $0 + $1.sizeBytes }
+            return "Неиспользуемого: \(bytes.formattedBytes)"
+        }
+        return "Неиспользуемого нет: у всех есть runtime, всеми пользовались за последние \(SimulatorTriage.staleAfterDays) дней"
+    }
 
     func loadSimulators() async {
         let service = SimulatorService()
@@ -88,8 +105,24 @@ final class CleanerModel {
     }
 
     func selectUnused() {
-        deviceSelection = Set(unusedDevices.map(\.id))
+        deviceSelection = Set(unusedDevices.map(\.device.id))
         runtimeSelection = Set(unusedRuntimes.map(\.id))
+    }
+
+    func note(for device: SimulatorDevice) -> String {
+        if device.isBooted { return "запущен — удалить нельзя" }
+        if device.isUnavailable { return "runtime не установлен, запустить нельзя" }
+        guard let lastUsed = device.lastUsed else { return device.runtime }
+
+        let days = Int(Date.now.timeIntervalSince(lastUsed) / 86_400)
+        if days >= SimulatorTriage.staleAfterDays {
+            return "\(device.runtime) · не открывался \(days) дней"
+        }
+        return "\(device.runtime) · \(lastUsed.formatted(date: .abbreviated, time: .omitted))"
+    }
+
+    func isStale(_ device: SimulatorDevice) -> Bool {
+        unusedDevices.contains { $0.device.id == device.id }
     }
 
     func deleteSelectedSimulators() async {

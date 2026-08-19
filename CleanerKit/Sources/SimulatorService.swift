@@ -55,7 +55,11 @@ public struct SimulatorService: Sendable {
         SimulatorParser.devices(from: try simctl.run(["list", "devices"]))
             .map { device in
                 var sized = device
-                sized.sizeBytes = allocatedSize(of: devicesRoot.appending(path: device.id))
+                let directory = devicesRoot.appending(path: device.id)
+                sized.sizeBytes = allocatedSize(of: directory)
+                sized.lastUsed = (try? directory.appending(path: "data")
+                    .resourceValues(forKeys: [.contentModificationDateKey]))?
+                    .contentModificationDate
                 return sized
             }
             .sorted { $0.sizeBytes > $1.sizeBytes }

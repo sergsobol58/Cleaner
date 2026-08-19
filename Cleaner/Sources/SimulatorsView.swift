@@ -29,11 +29,9 @@ struct SimulatorsView: View {
             Section("Симуляторы") {
                 ForEach(model.devices) { device in
                     row(title: device.name,
-                        note: device.isBooted ? "запущен — удалить нельзя"
-                            : device.isUnavailable ? "runtime не установлен, запустить нельзя"
-                            : device.runtime,
+                        note: model.note(for: device),
                         bytes: device.sizeBytes,
-                        accent: device.isUnavailable,
+                        accent: model.isStale(device),
                         disabled: device.isBooted,
                         isOn: Binding(
                             get: { model.deviceSelection.contains(device.id) },
@@ -98,7 +96,9 @@ struct SimulatorsView: View {
                      ? "Выбрано \(model.selectedSimulatorBytes.formattedBytes)"
                      : "Ничего не выбрано")
                     .font(.headline)
-                Text("Удаление здесь необратимо — Корзину simctl не использует")
+                Text(model.selectedSimulatorBytes > 0
+                     ? "Удаление здесь необратимо — Корзину simctl не использует"
+                     : model.unusedExplanation)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -106,7 +106,8 @@ struct SimulatorsView: View {
             Spacer()
 
             Button("Отметить неиспользуемые") { model.selectUnused() }
-                .disabled(model.unusedDevices.isEmpty && model.unusedRuntimes.isEmpty)
+                .disabled(!model.hasUnused)
+                .help(model.unusedExplanation)
 
             Button("Удалить…") {
                 model.acknowledgedIrreversible = false

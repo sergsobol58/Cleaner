@@ -7,6 +7,9 @@ public struct SimulatorDevice: Identifiable, Sendable, Equatable {
     public let isBooted: Bool
     public let isUnavailable: Bool
     public var sizeBytes: Int64 = 0
+    /// Когда каталог устройства последний раз менялся. Лучший доступный
+    /// признак «им давно не пользовались»: simctl своей даты не отдаёт.
+    public var lastUsed: Date?
 }
 
 public struct SimulatorRuntime: Identifiable, Sendable, Equatable {
