@@ -1,0 +1,10 @@
+# Tuist
+*.xcodeproj
+*.xcworkspace
+.tuist/
+Derived/
+# Xcode
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.DS_Store
