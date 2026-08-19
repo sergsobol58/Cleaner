@@ -75,25 +75,7 @@ public struct DiskScanner: Sendable {
         let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
             .contentModificationDate ?? .distantPast
 
-        return ScanItem(url: url, sizeBytes: allocatedSize(of: url), modified: modified)
+        return ScanItem(url: url, sizeBytes: CleanerKit.allocatedSize(of: url), modified: modified)
     }
 
-    private func allocatedSize(of url: URL) -> Int64 {
-        let keys: Set<URLResourceKey> = [.totalFileAllocatedSizeKey, .isDirectoryKey]
-
-        let values = try? url.resourceValues(forKeys: keys)
-        if values?.isDirectory != true {
-            return Int64(values?.totalFileAllocatedSize ?? 0)
-        }
-
-        guard let walker = FileManager.default.enumerator(
-            at: url, includingPropertiesForKeys: Array(keys)) else { return 0 }
-
-        var total: Int64 = 0
-        for case let child as URL in walker {
-            let childValues = try? child.resourceValues(forKeys: keys)
-            total += Int64(childValues?.totalFileAllocatedSize ?? 0)
-        }
-        return total
-    }
 }
