@@ -14,7 +14,17 @@ bash-скрипта (`legacy/maccleaner.sh`), но пишется на Swift з�
 ## Границы первой версии
 
 **Входит:** каркас проекта, сканирование, перемещение в Корзину для трёх
-категорий — `DerivedData`, `DeviceSupport`, кэши пакетных менеджеров.
+категорий:
+
+1. `~/Library/Developer/Xcode/DerivedData`
+2. `~/Library/Developer/Xcode/{iOS,watchOS,tvOS} DeviceSupport`
+3. Кэши пакетных менеджеров: `~/.npm/_cacache`, `~/Library/Caches/Yarn`,
+   `~/Library/pnpm/store`, `~/Library/Caches/pip`,
+   `~/Library/Caches/CocoaPods`, `~/.gradle/caches`
+
+Третья категория выбрана не ради объёма, а потому что она единственная
+объединяет несколько разных корней — на ней проверяется, что модель
+«категория → много корней» работает.
 
 **Не входит:** симуляторы и runtime-образы (там `simctl` и необратимость),
 безвозвратное удаление, `brew cleanup`, чистка логов, автозапуск по расписанию.
