@@ -4,13 +4,31 @@ import XCTest
 final class CatalogTests: XCTestCase {
     private let home = URL(fileURLWithPath: "/Users/тест", isDirectory: true)
 
+    /// Пустой listing: тест не должен зависеть от содержимого чужого Caches.
+    private func categories() -> [CleanupCategory] {
+        Catalog.standard(home: home, listing: { _ in [] })
+    }
+
     func testHasExpectedCategories() {
-        XCTAssertEqual(Catalog.standard(home: home).map(\.id),
-                       ["derivedData", "deviceSupport", "packageCaches"])
+        XCTAssertEqual(categories().map(\.id),
+                       ["derivedData", "deviceSupport", "packageCaches",
+                        "xcodeBuildMCP", "swiftPM", "appCaches", "appUpdaters"])
+    }
+
+    func testUpdaterCategoryTakesOnlyShipItDirectories() {
+        let caches = home.appendingPathComponent("Library/Caches")
+        let found = Catalog.standard(home: home, listing: { _ in [
+            caches.appendingPathComponent("com.microsoft.VSCode.ShipIt"),
+            caches.appendingPathComponent("СовсемДругое"),
+            caches.appendingPathComponent("Slack.ShipIt"),
+        ]}).first { $0.id == "appUpdaters" }
+
+        XCTAssertEqual(found?.roots.map(\.lastPathComponent),
+                       ["com.microsoft.VSCode.ShipIt", "Slack.ShipIt"])
     }
 
     func testEveryRootLivesInsideGivenHome() {
-        for category in Catalog.standard(home: home) {
+        for category in categories() {
             for root in category.roots {
                 XCTAssertTrue(root.path.hasPrefix(home.path),
                               "\(category.id): корень \(root.path) вне переданного дома")
@@ -21,12 +39,12 @@ final class CatalogTests: XCTestCase {
     /// Категория с несколькими корнями — ради неё packageCaches и попала
     /// в первую версию: на ней проверяется, что модель это выдерживает.
     func testPackageCachesHasSeveralRoots() {
-        let category = Catalog.standard(home: home).first { $0.id == "packageCaches" }
+        let category = categories().first { $0.id == "packageCaches" }
         XCTAssertGreaterThan(category?.roots.count ?? 0, 3)
     }
 
     func testEveryCategoryExplainsConsequence() {
-        for category in Catalog.standard(home: home) {
+        for category in categories() {
             XCTAssertFalse(category.title.isEmpty, "\(category.id): пустой заголовок")
             XCTAssertFalse(category.consequence.isEmpty, "\(category.id): не сказано о последствии")
         }
@@ -34,8 +52,8 @@ final class CatalogTests: XCTestCase {
 
     /// Корень категории удалять нельзя — только его содержимое.
     func testGuardRejectsRootsButAllowsTheirChildren() {
-        let sut = Catalog.pathGuard(home: home)
-        for category in Catalog.standard(home: home) {
+        let sut = Catalog.pathGuard(home: home, listing: { _ in [] })
+        for category in categories() {
             for root in category.roots {
                 XCTAssertEqual(sut.validate(root), .failure(.isRootItself),
                                "\(category.id): корень \(root.lastPathComponent) должен быть защищён")
@@ -50,7 +68,7 @@ final class CatalogTests: XCTestCase {
     }
 
     func testGuardProtectsUserData() {
-        let sut = Catalog.pathGuard(home: home)
+        let sut = Catalog.pathGuard(home: home, listing: { _ in [] })
         for unsafe in ["Documents", "Desktop", "Downloads", "Library/Mobile Documents",
                        "Library/Keychains", ".ssh", "Library/Developer/Xcode/Archives",
                        "Library/Developer/Xcode/UserData"] {

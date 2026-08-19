@@ -21,7 +21,12 @@ public struct CleanupCategory: Identifiable, Sendable, Equatable {
 /// `home` приходит параметром, а не берётся из `FileManager`: иначе тесты
 /// пришлось бы гонять по настоящему каталогу пользователя.
 public enum Catalog {
-    public static func standard(home: URL) -> [CleanupCategory] {
+    /// `listing` подменяется в тестах: часть корней вычисляется по факту
+    /// содержимого каталога, а тест не должен зависеть от чужой машины.
+    public static func standard(
+        home: URL,
+        listing: (URL) -> [URL] = Catalog.contentsOfDirectory
+    ) -> [CleanupCategory] {
         [
             CleanupCategory(
                 id: "derivedData",
@@ -52,13 +57,54 @@ public enum Catalog {
                     home / ".gradle/caches",
                 ]
             ),
+            CleanupCategory(
+                id: "xcodeBuildMCP",
+                title: "XcodeBuildMCP workspaces",
+                consequence: "Пересоздастся при следующей сборке через MCP",
+                roots: [home / "Library/Developer/XcodeBuildMCP/workspaces"]
+            ),
+            CleanupCategory(
+                id: "swiftPM",
+                title: "Кэш SwiftPM и документации",
+                consequence: "Пакеты и документация перекачаются",
+                roots: [
+                    home / "Library/Caches/org.swift.swiftpm",
+                    home / "Library/Developer/Xcode/DocumentationCache",
+                ]
+            ),
+            CleanupCategory(
+                id: "appCaches",
+                title: "Кэши приложений",
+                consequence: "Приложения перестроят кэш при следующем запуске",
+                roots: [
+                    "com.apple.dt.Xcode", "JetBrains", "com.microsoft.VSCode",
+                    "Google", "Homebrew", "ms-playwright", "ms-playwright-go",
+                    "typescript", "node-gyp", "electron", "Cypress",
+                    "com.openai.codex", "antigravity-updater",
+                ].map { home / "Library/Caches/\($0)" }
+            ),
+            CleanupCategory(
+                id: "appUpdaters",
+                title: "Загруженные обновления приложений",
+                consequence: "Установщики уже применённых обновлений, скачаются заново при нужде",
+                roots: listing(home / "Library/Caches")
+                    .filter { $0.lastPathComponent.hasSuffix(".ShipIt") }
+            ),
         ]
+    }
+
+    public static func contentsOfDirectory(_ url: URL) -> [URL] {
+        (try? FileManager.default.contentsOfDirectory(
+            at: url, includingPropertiesForKeys: nil)) ?? []
     }
 
     /// Разрешены только корни категорий. Сам корень удалить нельзя —
     /// `PathGuard` отклонит его как `isRootItself`, — но содержимое можно.
-    public static func allowedRoots(home: URL) -> [URL] {
-        standard(home: home).flatMap(\.roots)
+    public static func allowedRoots(
+        home: URL,
+        listing: (URL) -> [URL] = Catalog.contentsOfDirectory
+    ) -> [URL] {
+        standard(home: home, listing: listing).flatMap(\.roots)
     }
 
     /// Не трогаем никогда, даже если путь попал в разрешённый корень.
@@ -75,8 +121,12 @@ public enum Catalog {
         ].map { home / $0 }
     }
 
-    public static func pathGuard(home: URL) -> PathGuard {
-        PathGuard(allowedRoots: allowedRoots(home: home), deniedPaths: deniedPaths(home: home))
+    public static func pathGuard(
+        home: URL,
+        listing: (URL) -> [URL] = Catalog.contentsOfDirectory
+    ) -> PathGuard {
+        PathGuard(allowedRoots: allowedRoots(home: home, listing: listing),
+                  deniedPaths: deniedPaths(home: home))
     }
 }
 
