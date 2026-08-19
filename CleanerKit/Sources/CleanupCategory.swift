@@ -1,7 +1,7 @@
 import Foundation
 
 /// Категория мусора: что чистим и чем это обернётся.
-public struct Category: Identifiable, Sendable, Equatable {
+public struct CleanupCategory: Identifiable, Sendable, Equatable {
     public let id: String
     public let title: String
     /// Что произойдёт после удаления. Пользователь вправе знать это до, а не после.
@@ -21,15 +21,15 @@ public struct Category: Identifiable, Sendable, Equatable {
 /// `home` приходит параметром, а не берётся из `FileManager`: иначе тесты
 /// пришлось бы гонять по настоящему каталогу пользователя.
 public enum Catalog {
-    public static func standard(home: URL) -> [Category] {
+    public static func standard(home: URL) -> [CleanupCategory] {
         [
-            Category(
+            CleanupCategory(
                 id: "derivedData",
                 title: "Xcode DerivedData",
                 consequence: "Первая сборка будет дольше, проекты переиндексируются",
                 roots: [home / "Library/Developer/Xcode/DerivedData"]
             ),
-            Category(
+            CleanupCategory(
                 id: "deviceSupport",
                 title: "Символы подключённых устройств",
                 consequence: "Перекачается при следующем подключении устройства",
@@ -39,7 +39,7 @@ public enum Catalog {
                     home / "Library/Developer/Xcode/tvOS DeviceSupport",
                 ]
             ),
-            Category(
+            CleanupCategory(
                 id: "packageCaches",
                 title: "Кэши пакетных менеджеров",
                 consequence: "Первая установка пакетов будет дольше",
