@@ -25,11 +25,13 @@ let project = Project(
             deploymentTargets: .macOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleName": "Cleaner",
+                "CFBundleIconName": "AppIcon",
                 "CFBundleDisplayName": "Cleaner",
                 "LSMinimumSystemVersion": "26.0",
                 "NSHumanReadableCopyright": "",
             ]),
             sources: ["Cleaner/Sources/**"],
+            resources: ["Cleaner/Resources/**"],
             entitlements: entitlements,
             dependencies: [.target(name: "CleanerKit")]
         ),
