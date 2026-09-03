@@ -7,8 +7,8 @@ public struct SimulatorDevice: Identifiable, Sendable, Equatable {
     public let isBooted: Bool
     public let isUnavailable: Bool
     public var sizeBytes: Int64 = 0
-    /// Когда каталог устройства последний раз менялся. Лучший доступный
-    /// признак «им давно не пользовались»: simctl своей даты не отдаёт.
+    /// When the device directory last changed. The best available signal
+    /// for "nobody has used this in ages": simctl reports no date of its own.
     public var lastUsed: Date?
 }
 
@@ -21,8 +21,8 @@ public struct SimulatorRuntime: Identifiable, Sendable, Equatable {
     public var deviceCount: Int = 0
 }
 
-/// Разбор вывода `simctl`. Чистые функции: проверяются на записанных
-/// фикстурах, без единого симулятора под рукой.
+/// Parsing of `simctl` output. Pure functions, verified against recorded
+/// fixtures without a single simulator present.
 public enum SimulatorParser {
     private static let udid = /[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}/
 
@@ -38,8 +38,8 @@ public enum SimulatorParser {
                 continue
             }
 
-            // UDID ищем регуляркой, а не разбором скобок: имена вроде
-            // "iPad Pro 13-inch (M5)" содержат свои собственные скобки.
+            // The UDID is found by regex rather than by splitting on
+            // parentheses: names like "iPad Pro 13-inch (M5)" contain their own.
             guard let match = text.firstMatch(of: udid) else { continue }
 
             let name = String(text[text.startIndex..<match.range.lowerBound])
@@ -59,13 +59,13 @@ public enum SimulatorParser {
         return result
     }
 
-    /// "-- iOS 26.3 --" → "iOS 26.3".
-    /// "-- Unavailable: com.apple...SimRuntime.iOS-26-2 --" → "iOS 26.2".
+    /// "-- iOS 26.3 --" becomes "iOS 26.3".
+    /// "-- Unavailable: com.apple...SimRuntime.iOS-26-2 --" becomes "iOS 26.2".
     private static func header(_ line: String) -> String {
         var value = String(line.dropFirst(3).dropLast(3))
         guard value.hasPrefix("Unavailable:") else { return value }
 
-        guard let range = value.range(of: "SimRuntime.") else { return "неизвестный runtime" }
+        guard let range = value.range(of: "SimRuntime.") else { return kitString("unknown runtime") }
         value = String(value[range.upperBound...]).replacingOccurrences(of: "-", with: ".")
         if let dot = value.firstIndex(of: ".") {
             value.replaceSubrange(dot...dot, with: " ")
@@ -109,7 +109,7 @@ public enum SimulatorParser {
         return result
     }
 
-    /// Runtime без единого устройства — первый кандидат на удаление.
+    /// A runtime with no devices is the first candidate for removal.
     public static func countDevices(runtimes: [SimulatorRuntime],
                                     devices: [SimulatorDevice]) -> [SimulatorRuntime] {
         runtimes.map { runtime in
@@ -126,7 +126,7 @@ public enum SimulatorParser {
         return String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
     }
 
-    /// "7.8G" → байты.
+    /// Turns "7.8G" into bytes.
     private static func bytes(from text: String) -> Int64 {
         let units: [(Character, Double)] = [("K", 1024), ("M", 1_048_576),
                                             ("G", 1_073_741_824), ("T", 1_099_511_627_776)]

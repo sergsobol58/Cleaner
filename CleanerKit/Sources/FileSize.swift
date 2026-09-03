@@ -1,7 +1,7 @@
 import Foundation
 
-/// Занимаемый объём с учётом вложенного. Совпадает с `du`: считаем
-/// выделенное на диске, а не логический размер файла.
+/// Space taken on disk, nested content included. Matches `du`: we count
+/// allocated blocks rather than the logical file length.
 public func allocatedSize(of url: URL) -> Int64 {
     let keys: Set<URLResourceKey> = [.totalFileAllocatedSizeKey, .isDirectoryKey]
 

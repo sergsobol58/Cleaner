@@ -1,2 +1,3 @@
-// CleanerKit — логика поиска и удаления мусора.
-// Этот таргет не импортирует SwiftUI: всё здесь проверяется тестами без окна.
+// CleanerKit — the logic behind finding and removing junk.
+// This target does not import SwiftUI: everything here is verified by tests
+// without ever opening a window.

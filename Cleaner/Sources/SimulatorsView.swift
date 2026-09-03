@@ -1,8 +1,9 @@
 import CleanerKit
 import SwiftUI
 
-/// Раздел симуляторов вынесен отдельно намеренно: здесь удаление необратимо,
-/// и смешивать его с обратимой чисткой в один список нельзя.
+/// Simulators are a deliberately separate section: removal here is
+/// irreversible, and mixing it into the same list as reversible cleaning
+/// would hide that.
 struct SimulatorsView: View {
     @Bindable var model: CleanerModel
 
@@ -13,7 +14,7 @@ struct SimulatorsView: View {
             } else {
                 VStack(spacing: 10) {
                     ProgressView()
-                    Text("Опрашиваем simctl…").foregroundStyle(.secondary)
+                    Text("Asking simctl…").foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -26,7 +27,7 @@ struct SimulatorsView: View {
 
     private var list: some View {
         List {
-            Section("Симуляторы") {
+            Section("Simulators") {
                 ForEach(model.devices) { device in
                     row(title: device.name,
                         note: model.note(for: device),
@@ -42,12 +43,10 @@ struct SimulatorsView: View {
                 }
             }
 
-            Section("Runtime-образы") {
+            Section("Runtime images") {
                 ForEach(model.runtimes) { runtime in
                     row(title: runtime.name,
-                        note: !runtime.isDeletable ? "система не разрешает удаление"
-                            : runtime.deviceCount == 0 ? "ни одного устройства не использует"
-                            : "устройств: \(runtime.deviceCount)",
+                        note: note(for: runtime),
                         bytes: runtime.sizeBytes,
                         accent: runtime.deviceCount == 0 && runtime.isDeletable,
                         disabled: !runtime.isDeletable,
@@ -61,7 +60,7 @@ struct SimulatorsView: View {
             }
 
             if !model.simulatorFailures.isEmpty {
-                Section("Не удалось") {
+                Section("Failed") {
                     ForEach(model.simulatorFailures, id: \.self) { failure in
                         Text(failure).font(.caption).foregroundStyle(.secondary)
                     }
@@ -69,6 +68,12 @@ struct SimulatorsView: View {
             }
         }
         .listStyle(.inset)
+    }
+
+    private func note(for runtime: SimulatorRuntime) -> String {
+        if !runtime.isDeletable { return String(localized: "the system does not allow removing this") }
+        if runtime.deviceCount == 0 { return String(localized: "not used by any device") }
+        return runtime.deviceCount.devicesText
     }
 
     private func row(title: String, note: String, bytes: Int64,
@@ -93,11 +98,11 @@ struct SimulatorsView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.selectedSimulatorBytes > 0
-                     ? "Выбрано \(model.selectedSimulatorBytes.formattedBytes)"
-                     : "Ничего не выбрано")
+                     ? "Selected \(model.selectedSimulatorBytes.formattedBytes)"
+                     : "Nothing selected")
                     .font(.headline)
                 Text(model.selectedSimulatorBytes > 0
-                     ? "Удаление здесь необратимо — Корзину simctl не использует"
+                     ? String(localized: "Removal here is irreversible — simctl does not use the Trash")
                      : model.unusedExplanation)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -105,11 +110,11 @@ struct SimulatorsView: View {
 
             Spacer()
 
-            Button("Отметить неиспользуемые") { model.selectUnused() }
+            Button("Select unused") { model.selectUnused() }
                 .disabled(!model.hasUnused)
                 .help(model.unusedExplanation)
 
-            Button("Удалить…") {
+            Button("Delete…") {
                 model.acknowledgedIrreversible = false
                 model.isConfirmingSimulators = true
             }
@@ -120,7 +125,7 @@ struct SimulatorsView: View {
 
     private var confirmation: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Удалить безвозвратно", systemImage: "exclamationmark.triangle.fill")
+            Label("Delete permanently", systemImage: "exclamationmark.triangle.fill")
                 .font(.title3.bold())
                 .foregroundStyle(.orange)
 
@@ -133,21 +138,21 @@ struct SimulatorsView: View {
                 }
             }
 
-            Text("Всего \(model.selectedSimulatorBytes.formattedBytes).")
+            Text("\(model.selectedSimulatorBytes.formattedBytes) in total.")
                 .font(.callout.bold())
 
-            Text("Симулятор Xcode пересоздаст за секунды, но установленные в нём приложения и их данные пропадут. Runtime-образ придётся качать заново.")
+            Text("Xcode recreates a simulator in seconds, but the apps installed in it and their data are gone. A runtime image has to be downloaded again.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            Toggle("Понимаю, что в Корзину это не попадёт", isOn: $model.acknowledgedIrreversible)
+            Toggle("I understand this does not go to the Trash", isOn: $model.acknowledgedIrreversible)
 
             HStack {
                 Spacer()
-                Button("Отмена") { model.isConfirmingSimulators = false }
+                Button("Cancel") { model.isConfirmingSimulators = false }
                     .keyboardShortcut(.cancelAction)
-                Button("Удалить") {
+                Button("Delete") {
                     model.isConfirmingSimulators = false
                     Task { await model.deleteSelectedSimulators() }
                 }

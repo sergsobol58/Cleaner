@@ -69,7 +69,7 @@ final class SimulatorServiceTests: XCTestCase {
         XCTAssertEqual(unusable.map(\.name), ["iPhone 17"])
     }
 
-    /// Запущенный симулятор удалять нельзя — сначала его надо завершить.
+    /// A running simulator cannot be deleted; it must be shut down first.
     func testRefusesToDeleteBootedDevice() throws {
         let booted = try XCTUnwrap(try makeService().devices().first(where: \.isBooted))
         let before = fake.commands.count
@@ -77,7 +77,7 @@ final class SimulatorServiceTests: XCTestCase {
         XCTAssertThrowsError(try makeService().delete(device: booted)) { error in
             XCTAssertEqual(error as? SimulatorError, .deviceIsBooted)
         }
-        XCTAssertEqual(fake.commands.count, before, "команда удаления не должна отправляться")
+        XCTAssertEqual(fake.commands.count, before, "no delete command must be sent")
     }
 
     func testDeletesShutdownDevice() throws {

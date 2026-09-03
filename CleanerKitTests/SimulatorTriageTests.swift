@@ -14,37 +14,37 @@ final class SimulatorTriageTests: XCTestCase {
     }
 
     func testCatchesDeviceWithoutRuntime() {
-        let found = SimulatorTriage.unusedDevices([device("мёртвый", unavailable: true, daysAgo: 1)], now: now)
+        let found = SimulatorTriage.unusedDevices([device("dead", unavailable: true, daysAgo: 1)], now: now)
         XCTAssertEqual(found.map(\.reason), [.runtimeMissing])
     }
 
     func testCatchesForgottenDevice() {
-        let found = SimulatorTriage.unusedDevices([device("забытый", daysAgo: 120)], now: now)
+        let found = SimulatorTriage.unusedDevices([device("forgotten", daysAgo: 120)], now: now)
         XCTAssertEqual(found.map(\.reason), [.untouched(days: 120)])
     }
 
     func testKeepsRecentlyUsedDevice() {
-        XCTAssertTrue(SimulatorTriage.unusedDevices([device("свежий", daysAgo: 10)], now: now).isEmpty)
+        XCTAssertTrue(SimulatorTriage.unusedDevices([device("fresh", daysAgo: 10)], now: now).isEmpty)
     }
 
-    /// Запущенный не предлагаем никогда, даже если он древний.
+    /// A running device is never suggested, however ancient it is.
     func testNeverSuggestsBootedDevice() {
-        let ancient = device("работает", booted: true, daysAgo: 999)
+        let ancient = device("running", booted: true, daysAgo: 999)
         XCTAssertTrue(SimulatorTriage.unusedDevices([ancient], now: now).isEmpty)
     }
 
     func testBootedDeviceWithoutRuntimeIsStillSpared() {
-        let odd = device("странный", booted: true, unavailable: true, daysAgo: 999)
+        let odd = device("odd", booted: true, unavailable: true, daysAgo: 999)
         XCTAssertTrue(SimulatorTriage.unusedDevices([odd], now: now).isEmpty)
     }
 
     func testDeviceWithUnknownDateIsNotGuessedAbout() {
-        XCTAssertTrue(SimulatorTriage.unusedDevices([device("без даты")], now: now).isEmpty)
+        XCTAssertTrue(SimulatorTriage.unusedDevices([device("no-date")], now: now).isEmpty)
     }
 
     func testBoundaryIsInclusive() {
-        XCTAssertEqual(SimulatorTriage.unusedDevices([device("ровно", daysAgo: 90)], now: now).count, 1)
-        XCTAssertTrue(SimulatorTriage.unusedDevices([device("почти", daysAgo: 89)], now: now).isEmpty)
+        XCTAssertEqual(SimulatorTriage.unusedDevices([device("exactly", daysAgo: 90)], now: now).count, 1)
+        XCTAssertTrue(SimulatorTriage.unusedDevices([device("almost", daysAgo: 89)], now: now).isEmpty)
     }
 
     func testRuntimeWithoutDevicesIsUnused() {

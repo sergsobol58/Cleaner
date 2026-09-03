@@ -1,0 +1,380 @@
+{
+  "sourceLanguage": "en",
+  "version": "1.0",
+  "strings": {
+    "Xcode DerivedData": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xcode DerivedData"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xcode DerivedData"
+          }
+        }
+      }
+    },
+    "The next build takes longer; projects get reindexed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The next build takes longer; projects get reindexed"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перша збірка триватиме довше, проєкти переіндексуються"
+          }
+        }
+      }
+    },
+    "Symbols of connected devices": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Symbols of connected devices"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Символи під'єднаних пристроїв"
+          }
+        }
+      }
+    },
+    "Downloaded again the next time a device is connected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded again the next time a device is connected"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажиться знову під час наступного під'єднання пристрою"
+          }
+        }
+      }
+    },
+    "Package manager caches": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Package manager caches"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кеші пакетних менеджерів"
+          }
+        }
+      }
+    },
+    "The next package install takes longer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The next package install takes longer"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перше встановлення пакетів триватиме довше"
+          }
+        }
+      }
+    },
+    "XcodeBuildMCP workspaces": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XcodeBuildMCP workspaces"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Робочі теки XcodeBuildMCP"
+          }
+        }
+      }
+    },
+    "Recreated on the next build through MCP": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recreated on the next build through MCP"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Створяться заново під час наступної збірки через MCP"
+          }
+        }
+      }
+    },
+    "SwiftPM and documentation cache": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SwiftPM and documentation cache"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кеш SwiftPM і документації"
+          }
+        }
+      }
+    },
+    "Packages and documentation are downloaded again": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Packages and documentation are downloaded again"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пакети й документація завантажаться знову"
+          }
+        }
+      }
+    },
+    "Application caches": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Application caches"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кеші програм"
+          }
+        }
+      }
+    },
+    "Applications rebuild their cache on next launch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applications rebuild their cache on next launch"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Програми перебудують кеш під час наступного запуску"
+          }
+        }
+      }
+    },
+    "Downloaded application updates": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded application updates"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажені оновлення програм"
+          }
+        }
+      }
+    },
+    "Installers for updates already applied; downloaded again if needed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Installers for updates already applied; downloaded again if needed"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Інсталятори вже застосованих оновлень, за потреби завантажаться знову"
+          }
+        }
+      }
+    },
+    "the path is not absolute": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the path is not absolute"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "шлях не абсолютний"
+          }
+        }
+      }
+    },
+    "the path contains ..": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the path contains .."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "шлях містить .."
+          }
+        }
+      }
+    },
+    "this is a category root; only its contents are removed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this is a category root; only its contents are removed"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "це корінь категорії, видаляється лише його вміст"
+          }
+        }
+      }
+    },
+    "the path is on the never-touch list": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the path is on the never-touch list"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "шлях у списку недоторканних"
+          }
+        }
+      }
+    },
+    "the path is outside the allowed directories": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the path is outside the allowed directories"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "шлях поза дозволеними теками"
+          }
+        }
+      }
+    },
+    "the path disappeared after the scan": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the path disappeared after the scan"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "шлях зник після сканування"
+          }
+        }
+      }
+    },
+    "this is a symbolic link": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this is a symbolic link"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "це символічне посилання"
+          }
+        }
+      }
+    },
+    "unknown runtime": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "unknown runtime"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "невідомий runtime"
+          }
+        }
+      }
+    }
+  }
+}

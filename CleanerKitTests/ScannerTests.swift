@@ -29,12 +29,12 @@ final class ScannerTests: XCTestCase {
     }
 
     private func category(_ roots: [URL]) -> CleanupCategory {
-        CleanupCategory(id: "test", title: "Тест", consequence: "—", roots: roots)
+        CleanupCategory(id: "test", title: "Test", consequence: "—", roots: roots)
     }
 
     func testFindsDirectChildrenWithSizes() async throws {
-        try write("большой/файл.bin", bytes: 40_000)
-        try write("маленький/файл.bin", bytes: 1_000)
+        try write("big/file.bin", bytes: 40_000)
+        try write("small/file.bin", bytes: 1_000)
 
         let scans = await makeScanner().scan([category([root])])
 
@@ -45,29 +45,29 @@ final class ScannerTests: XCTestCase {
     }
 
     func testSizeCountsNestedFiles() async throws {
-        try write("каталог/один.bin", bytes: 10_000)
-        try write("каталог/глубже/два.bin", bytes: 10_000)
+        try write("folder/one.bin", bytes: 10_000)
+        try write("folder/deeper/two.bin", bytes: 10_000)
 
         let scans = await makeScanner().scan([category([root])])
         let item = try XCTUnwrap(scans[0].items.first)
 
-        XCTAssertEqual(scans[0].items.count, 1, "вложенное не должно попадать в список отдельно")
-        XCTAssertGreaterThanOrEqual(item.sizeBytes, 20_000, "размер должен включать вложенные файлы")
+        XCTAssertEqual(scans[0].items.count, 1, "nested content must not get its own row")
+        XCTAssertGreaterThanOrEqual(item.sizeBytes, 20_000, "the size must include nested files")
     }
 
     func testSortsLargestFirst() async throws {
-        try write("мелочь/a.bin", bytes: 1_000)
-        try write("громадина/b.bin", bytes: 90_000)
-        try write("середина/c.bin", bytes: 40_000)
+        try write("tiny/a.bin", bytes: 1_000)
+        try write("huge/b.bin", bytes: 90_000)
+        try write("medium/c.bin", bytes: 40_000)
 
         let scans = await makeScanner().scan([category([root])])
         let names = scans[0].items.map { $0.url.lastPathComponent }
 
-        XCTAssertEqual(names, ["громадина", "середина", "мелочь"])
+        XCTAssertEqual(names, ["huge", "medium", "tiny"])
     }
 
     func testMissingRootIsNotAnError() async throws {
-        let scans = await makeScanner().scan([category([root.appendingPathComponent("нет-такого")])])
+        let scans = await makeScanner().scan([category([root.appendingPathComponent("no-such-thing")])])
 
         XCTAssertEqual(scans.count, 1)
         XCTAssertTrue(scans[0].items.isEmpty)
@@ -75,46 +75,46 @@ final class ScannerTests: XCTestCase {
     }
 
     func testSkipsWhatGuardRejects() async throws {
-        try write("обычный/файл.bin", bytes: 1_000)
-        let target = root.appendingPathComponent("цель")
+        try write("ordinary/file.bin", bytes: 1_000)
+        let target = root.appendingPathComponent("target")
         try FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
         try FileManager.default.createSymbolicLink(
-            at: root.appendingPathComponent("ссылка"), withDestinationURL: target)
+            at: root.appendingPathComponent("link"), withDestinationURL: target)
 
         let scans = await makeScanner().scan([category([root])])
         let names = scans[0].items.map { $0.url.lastPathComponent }
 
-        XCTAssertFalse(names.contains("ссылка"), "симлинк не должен попадать в список на удаление")
-        XCTAssertTrue(names.contains("обычный"))
+        XCTAssertFalse(names.contains("link"), "a symlink must never be offered for removal")
+        XCTAssertTrue(names.contains("ordinary"))
     }
 
     func testGroupsFindingsByTheirRoot() async throws {
-        try write("первый/a.bin", bytes: 90_000)
-        try write("первый/b.bin", bytes: 10_000)
-        try write("второй/c.bin", bytes: 1_000)
+        try write("first/a.bin", bytes: 90_000)
+        try write("first/b.bin", bytes: 10_000)
+        try write("second/c.bin", bytes: 1_000)
 
         let scans = await makeScanner().scan([category([
-            root.appendingPathComponent("первый"),
-            root.appendingPathComponent("второй"),
+            root.appendingPathComponent("first"),
+            root.appendingPathComponent("second"),
         ])])
         let groups = scans[0].groups
 
         XCTAssertEqual(groups.count, 2)
-        XCTAssertEqual(groups.map { $0.root.lastPathComponent }, ["первый", "второй"],
-                       "крупные группы должны идти первыми")
+        XCTAssertEqual(groups.map { $0.root.lastPathComponent }, ["first", "second"],
+                       "larger groups must come first")
         XCTAssertEqual(groups[0].items.count, 2)
-        XCTAssertTrue(groups[0].items.allSatisfy { $0.root.lastPathComponent == "первый" })
+        XCTAssertTrue(groups[0].items.allSatisfy { $0.root.lastPathComponent == "first" })
     }
 
     func testMergesSeveralRootsIntoOneCategory() async throws {
-        try write("первый/a.bin", bytes: 1_000)
-        try write("второй/b.bin", bytes: 1_000)
+        try write("first/a.bin", bytes: 1_000)
+        try write("second/b.bin", bytes: 1_000)
 
         let scans = await makeScanner().scan([category([
-            root.appendingPathComponent("первый"),
-            root.appendingPathComponent("второй"),
+            root.appendingPathComponent("first"),
+            root.appendingPathComponent("second"),
         ])])
 
-        XCTAssertEqual(scans[0].items.count, 2, "корни категории сливаются в один список")
+        XCTAssertEqual(scans[0].items.count, 2, "category roots merge into one list")
     }
 }

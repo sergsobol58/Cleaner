@@ -1,12 +1,12 @@
 import Foundation
 
-/// Куда девается удаляемое. Отдельный протокол — чтобы тесты не трогали
-/// настоящую Корзину.
+/// Where removed items go. A separate protocol so tests never touch the
+/// real Trash.
 public protocol FileTrashing: Sendable {
     func trash(_ url: URL) throws
 }
 
-/// Штатная Корзина macOS: перемещение обратимо кнопкой «Положить обратно».
+/// The system Trash: the move is undone by Finder's "Put Back".
 public struct SystemTrash: FileTrashing {
     public init() {}
 
@@ -29,7 +29,7 @@ public struct RemovalReport: Sendable {
     public var isClean: Bool { failed.isEmpty }
 }
 
-/// Перемещение выбранного в Корзину.
+/// Moves the selection to the Trash.
 public struct Remover: Sendable {
     private let pathGuard: PathGuard
     private let trash: FileTrashing
@@ -39,14 +39,14 @@ public struct Remover: Sendable {
         self.trash = trash
     }
 
-    /// Последовательно, а не параллельно: скорость тут не выигрыш, а
-    /// предсказуемость отчёта — выигрыш.
+    /// Sequential rather than parallel: speed is not the prize here,
+    /// a predictable report is.
     public func remove(_ items: [ScanItem]) async -> RemovalReport {
         var moved: [RemovalOutcome] = []
         var failed: [RemovalOutcome] = []
 
         for item in items {
-            // Результатам скана не доверяем: проверяем заново прямо сейчас.
+            // Scan results are not trusted: the path is checked again, now.
             if case .failure(let rejection) = pathGuard.validate(item.url) {
                 failed.append(RemovalOutcome(item: item, error: Self.describe(rejection)))
                 continue
@@ -65,13 +65,13 @@ public struct Remover: Sendable {
 
     private static func describe(_ rejection: GuardRejection) -> String {
         switch rejection {
-        case .notAbsolute:         "путь не абсолютный"
-        case .traversal:           "путь содержит .."
-        case .isRootItself:        "это корень категории, удаляется только содержимое"
-        case .inDenyList:          "путь в стоп-листе"
-        case .outsideAllowedRoots: "путь вне разрешённых каталогов"
-        case .doesNotExist:        "путь исчез после сканирования"
-        case .symlink:             "это символическая ссылка"
+        case .notAbsolute:         kitString("the path is not absolute")
+        case .traversal:           kitString("the path contains ..")
+        case .isRootItself:        kitString("this is a category root; only its contents are removed")
+        case .inDenyList:          kitString("the path is on the never-touch list")
+        case .outsideAllowedRoots: kitString("the path is outside the allowed directories")
+        case .doesNotExist:        kitString("the path disappeared after the scan")
+        case .symlink:             kitString("this is a symbolic link")
         }
     }
 }

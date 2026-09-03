@@ -1,13 +1,13 @@
 import Foundation
 
-/// Находка: один каталог или файл, который можно удалить.
+/// One finding: a directory or file that can be removed.
 public struct ScanItem: Identifiable, Sendable, Equatable, Hashable {
     public let id: URL
     public var url: URL { id }
     public let sizeBytes: Int64
     public let modified: Date
-    /// Корень, из которого пришла находка. Без него имя вроде "content-v2"
-    /// в общем списке ничего не говорит.
+    /// The root this finding came from. Without it a name like "content-v2"
+    /// tells the reader nothing in a flat list.
     public let root: URL
 
     public init(url: URL, sizeBytes: Int64, modified: Date, root: URL) {
@@ -18,23 +18,16 @@ public struct ScanItem: Identifiable, Sendable, Equatable, Hashable {
     }
 }
 
-/// Находки одного корня внутри категории.
+/// Findings that share one root inside a category.
 public struct ScanGroup: Identifiable, Sendable {
     public let id: URL
     public var root: URL { id }
     public let items: [ScanItem]
 
     public var totalBytes: Int64 { items.reduce(0) { $0 + $1.sizeBytes } }
-
-    /// Разбивка по корням, крупные группы сверху. Пустые корни не показываем.
-    public var groups: [ScanGroup] {
-        Dictionary(grouping: items, by: \.root)
-            .map { ScanGroup(id: $0.key, items: $0.value.sorted { $0.sizeBytes > $1.sizeBytes }) }
-            .sorted { $0.totalBytes > $1.totalBytes }
-    }
 }
 
-/// Результат осмотра одной категории.
+/// The result of inspecting one category.
 public struct CategoryScan: Identifiable, Sendable {
     public let id: String
     public let category: CleanupCategory
@@ -42,7 +35,7 @@ public struct CategoryScan: Identifiable, Sendable {
 
     public var totalBytes: Int64 { items.reduce(0) { $0 + $1.sizeBytes } }
 
-    /// Разбивка по корням, крупные группы сверху. Пустые корни не показываем.
+    /// Split by root, largest groups first.
     public var groups: [ScanGroup] {
         Dictionary(grouping: items, by: \.root)
             .map { ScanGroup(id: $0.key, items: $0.value.sorted { $0.sizeBytes > $1.sizeBytes }) }
@@ -50,7 +43,7 @@ public struct CategoryScan: Identifiable, Sendable {
     }
 }
 
-/// Осмотр категорий. Только чтение: ничего не изменяет и не удаляет.
+/// Inspection of categories. Read-only: changes and deletes nothing.
 public struct DiskScanner: Sendable {
     private let pathGuard: PathGuard
 
@@ -65,7 +58,7 @@ public struct DiskScanner: Sendable {
             }
             var result: [(Int, CategoryScan)] = []
             for await value in group { result.append(value) }
-            // Порядок задач в группе не гарантирован — восстанавливаем исходный.
+            // Task completion order is not guaranteed — restore the original.
             return result.sorted { $0.0 < $1.0 }.map(\.1)
         }
     }
@@ -88,8 +81,8 @@ public struct DiskScanner: Sendable {
                             items: items.sorted { $0.sizeBytes > $1.sizeBytes })
     }
 
-    /// Только прямые потомки корня: сам корень не удаляем, вложенное считаем
-    /// в размер, но отдельными строками не показываем.
+    /// Direct children only: the root itself is never removed, and nested
+    /// content counts towards the size without getting its own row.
     private func children(of root: URL) -> [URL] {
         (try? FileManager.default.contentsOfDirectory(
             at: root, includingPropertiesForKeys: nil,
@@ -97,8 +90,8 @@ public struct DiskScanner: Sendable {
     }
 
     private func measure(_ url: URL, root: URL) -> ScanItem? {
-        // Что не проходит охрану, то и показывать незачем — иначе пользователь
-        // отметит галочку, а на удалении получит необъяснимый отказ.
+        // What the guard refuses is not worth showing: otherwise the user
+        // ticks a box and gets an unexplained refusal at deletion time.
         guard case .success = pathGuard.validate(url) else { return nil }
 
         let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
@@ -107,5 +100,4 @@ public struct DiskScanner: Sendable {
         return ScanItem(url: url, sizeBytes: CleanerKit.allocatedSize(of: url),
                         modified: modified, root: root)
     }
-
 }

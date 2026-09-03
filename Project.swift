@@ -1,13 +1,14 @@
 import ProjectDescription
 
-// Сэндбокс выключен осознанно: в песочнице ~/Library/Developer недоступен без
-// того, чтобы пользователь выбирал каждую папку вручную. См. спеку.
+// The sandbox is off deliberately: inside it ~/Library/Developer is
+// unreachable unless the user picks every folder by hand.
 private let entitlements: Entitlements = .dictionary([
     "com.apple.security.app-sandbox": false,
 ])
 
 let project = Project(
     name: "Cleaner",
+    options: .options(developmentRegion: "en"),
     targets: [
         .target(
             name: "CleanerKit",
@@ -15,7 +16,8 @@ let project = Project(
             product: .framework,
             bundleId: "dev.sobol.CleanerKit",
             deploymentTargets: .macOS("26.0"),
-            sources: ["CleanerKit/Sources/**"]
+            sources: ["CleanerKit/Sources/**"],
+            resources: ["CleanerKit/Resources/**"]
         ),
         .target(
             name: "Cleaner",
@@ -25,6 +27,7 @@ let project = Project(
             deploymentTargets: .macOS("26.0"),
             infoPlist: .extendingDefault(with: [
                 "CFBundleName": "Cleaner",
+                "CFBundleDevelopmentRegion": "en",
                 "CFBundleIconName": "AppIcon",
                 "CFBundleDisplayName": "Cleaner",
                 "LSMinimumSystemVersion": "26.0",

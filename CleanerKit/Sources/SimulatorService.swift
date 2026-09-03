@@ -6,8 +6,7 @@ public enum SimulatorError: Error, Equatable {
     case commandFailed(String)
 }
 
-/// Запуск `simctl`. Отдельный протокол — чтобы тесты не трогали
-/// настоящие симуляторы.
+/// Runs `simctl`. A separate protocol so tests never touch real simulators.
 public protocol SimctlRunning: Sendable {
     func run(_ arguments: [String]) throws -> String
 }
@@ -35,11 +34,11 @@ public struct Simctl: SimctlRunning {
     }
 }
 
-/// Симуляторы и runtime-образы.
+/// Simulators and runtime images.
 ///
-/// В отличие от файловых категорий, удаление здесь необратимо: `simctl` не
-/// умеет в Корзину, а перенести каталог мимо него нельзя — рассинхронизируется
-/// база CoreSimulator.
+/// Unlike the file categories, removal here is irreversible: `simctl` has no
+/// notion of the Trash, and moving the directory behind its back would leave
+/// the CoreSimulator database out of sync.
 public struct SimulatorService: Sendable {
     private let simctl: SimctlRunning
     private let devicesRoot: URL
@@ -73,8 +72,8 @@ public struct SimulatorService: Sendable {
     }
 
     public func delete(device: SimulatorDevice) throws {
-        // Запущенный симулятор сначала надо завершить: удаление под ним
-        // оставит систему в противоречивом состоянии.
+        // A running simulator must be shut down first: deleting it from
+        // under itself leaves the system in a contradictory state.
         guard !device.isBooted else { throw SimulatorError.deviceIsBooted }
         _ = try simctl.run(["delete", device.id])
     }

@@ -1,8 +1,8 @@
 import XCTest
 @testable import CleanerKit
 
-/// Проверки строятся на временном каталоге, а не на настоящем ~ пользователя:
-/// тест, который ходит в реальный дом, однажды в нём что-нибудь и сломает.
+/// The checks run against a temporary directory rather than the user's real
+/// home: a test that walks into a real home will eventually break something.
 final class PathGuardTests: XCTestCase {
     private var home: URL!
     private var sut: PathGuard!
@@ -47,26 +47,26 @@ final class PathGuardTests: XCTestCase {
                         _ message: String, file: StaticString = #filePath, line: UInt = #line) {
         switch sut.validate(url) {
         case .success:
-            XCTFail("должен быть запрещён (\(message)): \(url.path)", file: file, line: line)
+            XCTFail("must be refused (\(message)): \(url.path)", file: file, line: line)
         case .failure(let error):
             XCTAssertEqual(error, expected, message, file: file, line: line)
         }
     }
 
-    // MARK: - Отказы
+    // MARK: - Refusals
 
     func testRejectsRelativePath() {
-        reject(URL(string: "relative/path")!, .notAbsolute, "относительный путь")
+        reject(URL(string: "relative/path")!, .notAbsolute, "a relative path")
     }
 
     func testRejectsTraversal() {
         let url = home.appendingPathComponent("Library/Caches/../../Documents")
-        reject(url, .traversal, "путь с ..")
+        reject(url, .traversal, "a path containing ..")
     }
 
     func testRejectsAllowedRootItself() {
-        reject(home.appendingPathComponent("Library/Caches"), .isRootItself, "сам разрешённый корень")
-        reject(home.appendingPathComponent("Library/Developer"), .isRootItself, "сам разрешённый корень")
+        reject(home.appendingPathComponent("Library/Caches"), .isRootItself, "the allowed root itself")
+        reject(home.appendingPathComponent("Library/Developer"), .isRootItself, "the allowed root itself")
     }
 
     func testRejectsDeniedPaths() {
@@ -75,58 +75,58 @@ final class PathGuardTests: XCTestCase {
     }
 
     func testRejectsInsideDeniedPath() {
-        reject(home.appendingPathComponent("Documents/важное.txt"), .inDenyList, "файл внутри Documents")
+        reject(home.appendingPathComponent("Documents/important.txt"), .inDenyList, "a file inside Documents")
     }
 
-    /// Archives лежит внутри разрешённого корня Developer — стоп-лист должен победить.
+    /// Archives sits inside the allowed Developer root — the deny list must win.
     func testDenyListBeatsAllowedRoot() {
         reject(home.appendingPathComponent("Library/Developer/Xcode/Archives"),
-               .inDenyList, "Archives внутри разрешённого корня")
+               .inDenyList, "Archives inside an allowed root")
         reject(home.appendingPathComponent("Library/Developer/Xcode/Archives/App.xcarchive"),
-               .inDenyList, "содержимое Archives")
+               .inDenyList, "contents of Archives")
     }
 
-    /// Путь, который сам содержит запрещённый каталог, удалять нельзя:
-    /// снеся Xcode/, мы унесли бы вместе с ним Archives.
+    /// A path that itself contains a forbidden directory cannot be removed:
+    /// deleting Xcode/ would carry Archives away with it.
     func testRejectsPathContainingDeniedPath() {
         reject(home.appendingPathComponent("Library/Developer/Xcode"),
-               .inDenyList, "Xcode содержит Archives")
+               .inDenyList, "Xcode contains Archives")
     }
 
     func testRejectsFilesystemRoot() {
-        reject(URL(fileURLWithPath: "/"), .inDenyList, "корень файловой системы")
+        reject(URL(fileURLWithPath: "/"), .inDenyList, "the filesystem root")
     }
 
     func testRejectsOutsideAllowedRoots() {
-        reject(URL(fileURLWithPath: "/etc/passwd"), .outsideAllowedRoots, "системный файл")
-        reject(URL(fileURLWithPath: "/System"), .outsideAllowedRoots, "системный каталог")
+        reject(URL(fileURLWithPath: "/etc/passwd"), .outsideAllowedRoots, "a system file")
+        reject(URL(fileURLWithPath: "/System"), .outsideAllowedRoots, "a system directory")
     }
 
-    /// Library не входит в разрешённые корни и вдобавок содержит Archives —
-    /// достаточно любой из причин, но стоп-лист проверяется первым.
+    /// Library is not an allowed root and additionally contains Archives —
+    /// either reason suffices, but the deny list is checked first.
     func testRejectsLibraryBecauseItContainsDeniedPath() {
-        reject(home.appendingPathComponent("Library"), .inDenyList, "Library содержит Archives")
+        reject(home.appendingPathComponent("Library"), .inDenyList, "Library contains Archives")
     }
 
-    /// Строковое сравнение префиксов сочло бы CachesOther продолжением Caches.
+    /// A string prefix comparison would read CachesOther as part of Caches.
     func testRejectsSiblingWithSharedPrefix() throws {
         let sibling = try makeDir("Library/CachesOther/thing")
-        reject(sibling, .outsideAllowedRoots, "каталог с общим префиксом имени")
+        reject(sibling, .outsideAllowedRoots, "a sibling sharing a name prefix")
     }
 
     func testRejectsNonexistentPath() {
-        reject(home.appendingPathComponent("Library/Caches/нет-такого"),
-               .doesNotExist, "несуществующий путь")
+        reject(home.appendingPathComponent("Library/Caches/no-such-thing"),
+               .doesNotExist, "a path that does not exist")
     }
 
     func testRejectsSymlink() throws {
-        let target = try makeDir("Documents/секрет")
-        let link = home.appendingPathComponent("Library/Caches/ссылка")
+        let target = try makeDir("Documents/secret")
+        let link = home.appendingPathComponent("Library/Caches/link")
         try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
-        reject(link, .symlink, "симлинк наружу")
+        reject(link, .symlink, "a symlink pointing outside")
     }
 
-    // MARK: - Пропуски
+    // MARK: - Allowed
 
     func testAllowsDirectChildOfAllowedRoot() throws {
         let url = try makeDir("Library/Caches/npm")
@@ -139,7 +139,7 @@ final class PathGuardTests: XCTestCase {
     }
 
     func testAllowsRegularFile() throws {
-        let url = home.appendingPathComponent("Library/Caches/файл.db")
+        let url = home.appendingPathComponent("Library/Caches/file.db")
         try Data("x".utf8).write(to: url)
         XCTAssertEqual(try sut.validate(url).get(), url)
     }

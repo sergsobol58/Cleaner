@@ -1,8 +1,8 @@
 #!/bin/bash
-# Обёртка над Tuist/xcodebuild.
-# Всегда перегенерирует проект: Tuist фиксирует список файлов при генерации,
-# и новый .swift без этого шага молча не попадёт в сборку — тесты тогда
-# «проходят», просто не существуя.
+# A wrapper around Tuist/xcodebuild.
+# It always regenerates the project: Tuist freezes the file list at generation
+# time, so without this step a new .swift silently stays out of the build —
+# and the tests then "pass" simply by not existing.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -29,6 +29,10 @@ case "${1:-test}" in
     open "$(xcodebuild -workspace "$WS" -scheme Cleaner -destination "$DEST" \
       -showBuildSettings 2>/dev/null | awk -F' = ' '/ BUILT_PRODUCTS_DIR/{print $2; exit}')/Cleaner.app"
     ;;
-  gen) gen; echo "  проект сгенерирован" ;;
-  *) echo "использование: ./make.sh [test|build|run|gen]" >&2; exit 2 ;;
+  loc)
+    gen
+    python3 tools/check-localization.py
+    ;;
+  gen) gen; echo "  project generated" ;;
+  *) echo "usage: ./make.sh [test|build|run|loc|gen]" >&2; exit 2 ;;
 esac

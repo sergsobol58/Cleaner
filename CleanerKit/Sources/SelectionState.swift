@@ -1,14 +1,14 @@
 import Foundation
 
-/// Насколько выбрана группа находок.
+/// How much of a group is selected.
 public enum Coverage: Sendable, Equatable {
     case none, partial, all
 }
 
-/// Что именно отмечено к удалению.
+/// What exactly is marked for removal.
 ///
-/// Живёт в CleanerKit, а не во вьюхе: от этого набора зависит, какие файлы
-/// уедут в Корзину, и такое стоит держать под тестами.
+/// Lives in CleanerKit rather than in a view: this set decides which files
+/// end up in the Trash, and that belongs under test.
 public struct SelectionState: Sendable, Equatable {
     private var selected: Set<URL> = []
 
@@ -34,8 +34,8 @@ public struct SelectionState: Sendable, Equatable {
         }
     }
 
-    /// Нажатие по частично выбранной группе добирает остаток, а не сбрасывает
-    /// её: снять уже отмеченное пользователь может повторным нажатием.
+    /// Clicking a partly selected group completes it rather than clearing it:
+    /// the user can still clear it with a second click.
     public mutating func toggleAll(_ items: [ScanItem]) {
         set(items, selected: coverage(of: items) != .all)
     }
@@ -55,7 +55,7 @@ public struct SelectionState: Sendable, Equatable {
         items(from: scans).reduce(0) { $0 + $1.sizeBytes }
     }
 
-    /// После удаления отметки на исчезнувшие пути держать незачем.
+    /// Once something is removed, keeping it selected serves no purpose.
     public mutating func keepOnly(_ scans: [CategoryScan]) {
         let alive = Set(scans.flatMap(\.items).map(\.url))
         selected.formIntersection(alive)

@@ -1,137 +1,159 @@
 # Cleaner
 
-Нативное macOS-приложение для чистки мусора разработчика. Список категорий,
-галочки, одна кнопка. Ничего не стирается насовсем — только Корзина.
+[Українською](README.uk.md)
 
-## Ответственность
+A native macOS app for clearing out developer junk. A list of categories,
+checkboxes, one button. Nothing is erased for good — only the Trash.
 
-**Программа удаляет файлы. Ответственность за их сохранность лежит на вас.**
+The interface ships in English and Ukrainian and follows the system language.
 
-Автор не отвечает за потерянные данные, сломанные сборки, испорченные проекты и
-любой другой ущерб от использования этой программы — ни прямой, ни косвенный.
-Это условие лицензии MIT, а не фигура речи: программа поставляется «как есть»,
-без каких-либо гарантий.
+## Liability
 
-Запускайте её только если понимаете, что именно она удаляет. Перед первой
-чисткой посмотрите список и прочитайте, чем обернётся каждая категория, — эти
-подписи в интерфейсе для этого и написаны. Раздел «Симуляторы» удаляет
-безвозвратно, минуя Корзину: там ошибку исправить будет нечем.
+**This program deletes files. Keeping them safe is your responsibility.**
 
-Меры предосторожности внутри — белый список путей, стоп-лист, повторная
-проверка перед удалением, Корзина вместо стирания — снижают риск, но не
-отменяют его. Резервная копия остаётся вашей обязанностью: убедитесь, что
-Time Machine или другой бэкап действительно работает, прежде чем чистить диск.
+The author is not liable for lost data, broken builds, ruined projects or any
+other damage caused by using this program, whether direct or indirect. That is
+the MIT licence talking, not a figure of speech: the software is provided
+"as is", without warranty of any kind.
 
-## Сборка
+Run it only if you understand what it removes. Before your first clean-up, look
+through the list and read what each category costs — that is exactly what those
+captions in the interface are for. The Simulators tab deletes permanently,
+bypassing the Trash: a mistake there cannot be undone.
+
+The precautions inside — a path allow list, a never-touch list, revalidation
+before removal, the Trash instead of erasure — reduce the risk but do not
+remove it. A backup remains your job: make sure Time Machine or another backup
+actually works before you start clearing disk space.
+
+## Building
 
 ```bash
-./make.sh test    # прогнать тесты
-./make.sh build   # собрать приложение
-./make.sh run     # собрать и запустить
+./make.sh test    # run the tests
+./make.sh build   # build the app
+./make.sh run     # build and launch
+./make.sh loc     # check the string catalogs against the code
 ```
 
-Иконка собирается из скрипта: `swift tools/make-icon.swift` перерисовывает все
-PNG в `Cleaner/Resources/Assets.xcassets`. Правится код, а не картинка.
+The icon is produced by a script: `swift tools/make-icon.swift` redraws every
+PNG under `Cleaner/Resources/Assets.xcassets`. You edit code, not a picture.
 
-`make.sh` всегда вызывает `tuist generate` перед сборкой. Это не перестраховка:
-Tuist фиксирует список файлов в момент генерации, и новый `.swift` без этого
-шага молча не попадёт в сборку — тесты тогда «проходят», просто не существуя.
+`make.sh` always runs `tuist generate` first. That is not superstition: Tuist
+freezes the file list at generation time, so without this step a new `.swift`
+silently stays out of the build — and the tests then "pass" simply by not
+existing.
 
-## Устройство
+## Layout
 
 ```
-CleanerKit/     логика: PathGuard, Catalog, DiskScanner, Remover, симуляторы
+CleanerKit/       logic: PathGuard, Catalog, DiskScanner, Remover, simulators
 CleanerKitTests/
-Cleaner/        SwiftUI-приложение и ресурсы
-tools/          генератор иконки
-legacy/         предшественник — bash-утилита maccleaner.sh
+Cleaner/          the SwiftUI app and its resources
+tools/            icon generator, localization check
+legacy/           the predecessor — the maccleaner.sh shell utility
 ```
 
-`CleanerKit` не импортирует SwiftUI, приложение не работает с файловой системой
-напрямую. Логика проверяется тестами без запуска окна.
+`CleanerKit` does not import SwiftUI, and the app does not touch the file
+system directly. The logic is verified by tests without opening a window.
 
-## Модель безопасности
+## Localization
 
-Приоритет — сохранность данных, а не полнота чистки.
+Two languages: English (the source language) and Ukrainian. Strings live in
+string catalogs — `Cleaner/Resources/Localizable.xcstrings` for the interface
+and `CleanerKit/Resources/Localizable.xcstrings` for the category names and
+error texts the framework owns.
 
-**Только Корзина.** Удаление идёт через `FileManager.trashItem`: работает
-штатная кнопка «Положить обратно» в Finder. Безвозвратного удаления в
-приложении нет вообще.
+Counted nouns are separate strings with exactly one numeric argument
+(`%lld items`, `%lld days`, `%lld devices`), because Ukrainian needs
+one/few/many forms and a plural rule can only key off a single number.
 
-**Белый список, а не чёрный.** `PathGuard` пропускает путь, только если он
-абсолютный, не симлинк, без `..`, лежит строго внутри разрешённого корня и не
-совпадает с самим корнем. Разрешённые корни — ровно корни категорий, так что
-удаляется только их содержимое.
+`./make.sh loc` compares both catalogs against the keys the compiler actually
+emits. This matters more than it sounds: Swift builds keys from interpolation,
+so `Text("Selected \(a) · \(b)")` becomes `Selected %@ · %@`, not
+`Selected %1$@ · %2$@`. A hand-written entry that guesses wrong never matches
+and fails quietly — the app simply shows English.
 
-**Стоп-лист поверх белого списка,** сравнение в обе стороны: нельзя ни удалить
-запрещённое, ни удалить каталог, внутри которого запрещённое лежит. Снести
-`Xcode/` не выйдет, потому что там `Archives`. В стоп-листе: `Documents`,
-`Desktop`, `Downloads`, iCloud Drive, Photos, Mail, Messages, Keychains,
-`~/.ssh`, бэкапы устройств, `Xcode/Archives`, `Xcode/UserData`.
+## Safety model
 
-Сравнение идёт по компонентам пути, а не по строкам: строковый префикс счёл бы
-`CachesOther` продолжением `Caches`.
+The priority is keeping data, not cleaning thoroughly.
 
-**Повторная проверка перед удалением.** Результатам сканирования `Remover` не
-доверяет и прогоняет каждый путь через `PathGuard` заново непосредственно перед
-перемещением: между сканом и нажатием кнопки проходят минуты.
+**The Trash only.** Removal goes through `FileManager.trashItem`, so Finder's
+regular "Put Back" works. The app has no permanent deletion at all.
 
-**Ничего не отмечено по умолчанию.** Сбой на одном пути не прерывает остальные —
-отчёт собирается поэлементно.
+**An allow list, not a deny list.** `PathGuard` admits a path only if it is
+absolute, not a symlink, free of `..`, strictly inside an allowed root and not
+equal to the root itself. The allowed roots are exactly the category roots, so
+only their contents can go.
 
-## Файлы
+**A never-touch list on top of the allow list,** compared in both directions:
+you can neither delete something forbidden nor delete a directory that has
+something forbidden inside it. `Xcode/` cannot go because `Archives` lives
+there. On the list: `Documents`, `Desktop`, `Downloads`, iCloud Drive, Photos,
+Mail, Messages, Keychains, `~/.ssh`, device backups, `Xcode/Archives`,
+`Xcode/UserData`.
 
-Вкладка «Файлы» — обратимая чистка, всё уезжает в Корзину.
+Comparison is by path component rather than by string: a string prefix would
+read `CachesOther` as part of `Caches`.
 
-Категория раскрывается в список конкретных находок: имя, размер, дата
-изменения. Отметить можно что угодно — отдельный файл, группу или категорию
-целиком. Галочка категории показывает промежуточное состояние, когда внутри
-выбрано не всё, и нажатие по ней добирает остаток.
+**Revalidation before removal.** `Remover` does not trust the scan and puts
+every path through `PathGuard` again immediately before moving it: minutes pass
+between the scan and the button press.
 
-Категории с несколькими корнями показывают сперва группы: в «Кэшах пакетных
-менеджеров» имя `content-v2` само по себе ничего не говорит, а под заголовком
-`.npm/_cacache` — говорит.
+**Nothing is selected by default.** A failure on one path does not stop the
+rest — the report is assembled per item.
 
-| Категория | Что это | Последствие |
+## Files
+
+The Files tab is reversible cleaning: everything goes to the Trash.
+
+A category expands into the individual findings: name, size, modification date.
+You can mark anything — a single file, a group, or the whole category. The
+category checkbox shows a partial state when only some of it is selected, and
+clicking it completes the rest.
+
+Categories with several roots show groups first: in "Package manager caches"
+the name `content-v2` says nothing on its own, but under the heading
+`.npm/_cacache` it does.
+
+| Category | What it is | Consequence |
 |---|---|---|
-| Xcode DerivedData | Индексы и промежуточные сборки | Первая сборка дольше |
-| Символы устройств | `iOS/watchOS/tvOS DeviceSupport` | Перекачается при подключении устройства |
-| Кэши пакетных менеджеров | npm, Yarn, pnpm, pip, CocoaPods, Gradle | Первая установка дольше |
-| XcodeBuildMCP workspaces | Рабочие копии сборок через MCP | Пересоздастся |
-| Кэш SwiftPM и документации | `org.swift.swiftpm`, `DocumentationCache` | Перекачается |
-| Кэши приложений | Xcode, JetBrains, VS Code, Chrome, Homebrew, playwright и другие | Приложения перестроят кэш |
-| Загруженные обновления | Каталоги `*.ShipIt` в `~/Library/Caches` | Скачаются заново при нужде |
+| Xcode DerivedData | Indexes and intermediate builds | The next build is slower |
+| Device symbols | `iOS/watchOS/tvOS DeviceSupport` | Re-downloaded when a device connects |
+| Package manager caches | npm, Yarn, pnpm, pip, CocoaPods, Gradle | The next install is slower |
+| XcodeBuildMCP workspaces | Working copies of MCP builds | Recreated |
+| SwiftPM and documentation cache | `org.swift.swiftpm`, `DocumentationCache` | Re-downloaded |
+| Application caches | Xcode, JetBrains, VS Code, Chrome, Homebrew, playwright and others | Apps rebuild their cache |
+| Downloaded updates | `*.ShipIt` directories in `~/Library/Caches` | Downloaded again if needed |
 
-Список `*.ShipIt` вычисляется по факту содержимого каталога, а не задан
-константой: у каждого набор приложений свой.
+The `*.ShipIt` list is derived from what the directory actually contains rather
+than fixed as a constant: everyone has a different set of apps.
 
-## Симуляторы
+## Simulators
 
-Вкладка «Симуляторы» вынесена отдельно **потому, что здесь удаление
-необратимо**. Каталог симулятора привязан к базе CoreSimulator, поэтому
-перенести его в Корзину нельзя — база рассинхронизируется. Удаляет `simctl`,
-мимо Корзины.
+The Simulators tab is separate **because removal here is irreversible**. A
+simulator directory is tied to the CoreSimulator database, so it cannot be
+moved to the Trash without leaving that database out of sync. `simctl` does the
+deleting, and it bypasses the Trash.
 
-Отсюда и другие правила в этом разделе:
+Hence the different rules in this section:
 
-- Кнопка **«Отметить неиспользуемые»** отмечает то, что заведомо мертво:
-  устройства без установленного runtime и runtime, которым не пользуется ни
-  одно устройство.
-- Запущенный симулятор удалить нельзя — сначала завершите его.
-- Runtime с пометкой `Deletable: NO` защищён системой.
-- Подтверждение требует отдельно отметить «Понимаю, что в Корзину это не
-  попадёт» — обычного нажатия недостаточно.
+- **Select unused** marks what is demonstrably dead: devices whose runtime is
+  not installed, and runtimes no device uses.
+- A running simulator cannot be deleted — shut it down first.
+- A runtime marked `Deletable: NO` is protected by the system.
+- Confirmation requires ticking "I understand this does not go to the Trash"
+  separately; an ordinary click is not enough.
 
-Разбор вывода `simctl` проверяется на записанных фикстурах, включая имена со
-скобками вроде `iPad Pro 13-inch (M5)`: разбор по скобкам считал бы UDID'ом
-строку `M5`.
+Parsing of `simctl` output is verified against recorded fixtures, including
+names with parentheses such as `iPad Pro 13-inch (M5)`: splitting on
+parentheses would read `M5` as the UDID.
 
-## Сэндбокс
+## Sandbox
 
-App Sandbox выключен осознанно: в песочнице `~/Library/Developer` недоступен без
-того, чтобы пользователь выбирал каждую папку вручную. Это локальный инструмент,
-не для App Store.
+App Sandbox is off deliberately: inside it `~/Library/Developer` is unreachable
+unless the user picks every folder by hand. This is a local tool, not something
+for the App Store.
 
-## Лицензия
+## Licence
 
-MIT — см. [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).

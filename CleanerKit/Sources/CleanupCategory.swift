@@ -1,10 +1,10 @@
 import Foundation
 
-/// Категория мусора: что чистим и чем это обернётся.
+/// A junk category: what gets cleaned and what that costs.
 public struct CleanupCategory: Identifiable, Sendable, Equatable {
     public let id: String
     public let title: String
-    /// Что произойдёт после удаления. Пользователь вправе знать это до, а не после.
+    /// What happens after deletion. The user is entitled to know beforehand.
     public let consequence: String
     public let roots: [URL]
 
@@ -16,13 +16,14 @@ public struct CleanupCategory: Identifiable, Sendable, Equatable {
     }
 }
 
-/// Что чистим и что защищаем.
+/// What we clean and what we protect.
 ///
-/// `home` приходит параметром, а не берётся из `FileManager`: иначе тесты
-/// пришлось бы гонять по настоящему каталогу пользователя.
+/// `home` is a parameter rather than being read from `FileManager`: otherwise
+/// the tests would have to run against the user's real directory.
 public enum Catalog {
-    /// `listing` подменяется в тестах: часть корней вычисляется по факту
-    /// содержимого каталога, а тест не должен зависеть от чужой машины.
+    /// `listing` is substituted in tests: some roots are derived from the
+    /// actual contents of a directory, and a test must not depend on whatever
+    /// happens to be on someone's machine.
     public static func standard(
         home: URL,
         listing: (URL) -> [URL] = Catalog.contentsOfDirectory
@@ -30,14 +31,14 @@ public enum Catalog {
         [
             CleanupCategory(
                 id: "derivedData",
-                title: "Xcode DerivedData",
-                consequence: "Первая сборка будет дольше, проекты переиндексируются",
+                title: kitString("Xcode DerivedData"),
+                consequence: kitString("The next build takes longer; projects get reindexed"),
                 roots: [home.appending(path: "Library/Developer/Xcode/DerivedData")]
             ),
             CleanupCategory(
                 id: "deviceSupport",
-                title: "Символы подключённых устройств",
-                consequence: "Перекачается при следующем подключении устройства",
+                title: kitString("Symbols of connected devices"),
+                consequence: kitString("Downloaded again the next time a device is connected"),
                 roots: [
                     home.appending(path: "Library/Developer/Xcode/iOS DeviceSupport"),
                     home.appending(path: "Library/Developer/Xcode/watchOS DeviceSupport"),
@@ -46,8 +47,8 @@ public enum Catalog {
             ),
             CleanupCategory(
                 id: "packageCaches",
-                title: "Кэши пакетных менеджеров",
-                consequence: "Первая установка пакетов будет дольше",
+                title: kitString("Package manager caches"),
+                consequence: kitString("The next package install takes longer"),
                 roots: [
                     home.appending(path: ".npm/_cacache"),
                     home.appending(path: "Library/Caches/Yarn"),
@@ -59,14 +60,14 @@ public enum Catalog {
             ),
             CleanupCategory(
                 id: "xcodeBuildMCP",
-                title: "XcodeBuildMCP workspaces",
-                consequence: "Пересоздастся при следующей сборке через MCP",
+                title: kitString("XcodeBuildMCP workspaces"),
+                consequence: kitString("Recreated on the next build through MCP"),
                 roots: [home.appending(path: "Library/Developer/XcodeBuildMCP/workspaces")]
             ),
             CleanupCategory(
                 id: "swiftPM",
-                title: "Кэш SwiftPM и документации",
-                consequence: "Пакеты и документация перекачаются",
+                title: kitString("SwiftPM and documentation cache"),
+                consequence: kitString("Packages and documentation are downloaded again"),
                 roots: [
                     home.appending(path: "Library/Caches/org.swift.swiftpm"),
                     home.appending(path: "Library/Developer/Xcode/DocumentationCache"),
@@ -74,8 +75,8 @@ public enum Catalog {
             ),
             CleanupCategory(
                 id: "appCaches",
-                title: "Кэши приложений",
-                consequence: "Приложения перестроят кэш при следующем запуске",
+                title: kitString("Application caches"),
+                consequence: kitString("Applications rebuild their cache on next launch"),
                 roots: [
                     "com.apple.dt.Xcode", "JetBrains", "com.microsoft.VSCode",
                     "Google", "Homebrew", "ms-playwright", "ms-playwright-go",
@@ -85,8 +86,8 @@ public enum Catalog {
             ),
             CleanupCategory(
                 id: "appUpdaters",
-                title: "Загруженные обновления приложений",
-                consequence: "Установщики уже применённых обновлений, скачаются заново при нужде",
+                title: kitString("Downloaded application updates"),
+                consequence: kitString("Installers for updates already applied; downloaded again if needed"),
                 roots: listing(home.appending(path: "Library/Caches"))
                     .filter { $0.lastPathComponent.hasSuffix(".ShipIt") }
             ),
@@ -98,8 +99,8 @@ public enum Catalog {
             at: url, includingPropertiesForKeys: nil)) ?? []
     }
 
-    /// Разрешены только корни категорий. Сам корень удалить нельзя —
-    /// `PathGuard` отклонит его как `isRootItself`, — но содержимое можно.
+    /// Only category roots are allowed. The root itself cannot be deleted —
+    /// `PathGuard` rejects it as `isRootItself` — but its contents can.
     public static func allowedRoots(
         home: URL,
         listing: (URL) -> [URL] = Catalog.contentsOfDirectory
@@ -107,16 +108,16 @@ public enum Catalog {
         standard(home: home, listing: listing).flatMap(\.roots)
     }
 
-    /// Не трогаем никогда, даже если путь попал в разрешённый корень.
+    /// Never touched, even when the path falls inside an allowed root.
     public static func deniedPaths(home: URL) -> [URL] {
         [
             "Documents", "Desktop", "Downloads",
-            "Library/Mobile Documents",     // iCloud Drive
+            "Library/Mobile Documents",                // iCloud Drive
             "Library/Photos", "Library/Mail", "Library/Messages",
             "Library/Keychains",
-            "Library/Application Support/MobileSync",  // бэкапы устройств
-            "Library/Developer/Xcode/Archives",        // собранные релизы
-            "Library/Developer/Xcode/UserData",        // схемы, сниппеты, брейкпоинты
+            "Library/Application Support/MobileSync",  // device backups
+            "Library/Developer/Xcode/Archives",        // shipped releases
+            "Library/Developer/Xcode/UserData",        // schemes, snippets, breakpoints
             ".ssh",
         ].map { home.appending(path: $0) }
     }
@@ -129,4 +130,3 @@ public enum Catalog {
                   deniedPaths: deniedPaths(home: home))
     }
 }
-

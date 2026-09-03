@@ -1,16 +1,16 @@
 import Foundation
 
-/// Что считать неиспользуемым.
+/// What counts as unused.
 ///
-/// Логика вынесена из интерфейса, чтобы её можно было проверить тестами:
-/// от неё зависит, что приложение предложит удалить необратимо.
+/// Kept out of the interface so it can be tested: this decides what the app
+/// offers to delete irreversibly.
 public enum SimulatorTriage {
-    /// Симулятор, которого не касались дольше этого срока, считаем забытым.
+    /// A simulator untouched for longer than this is treated as forgotten.
     public static let staleAfterDays = 90
 
     public enum Reason: Equatable, Sendable {
-        case runtimeMissing            // запустить невозможно в принципе
-        case untouched(days: Int)      // просто давно не нужен
+        case runtimeMissing            // cannot be launched at all
+        case untouched(days: Int)      // simply not needed for a long time
     }
 
     public static func unusedDevices(
@@ -19,14 +19,14 @@ public enum SimulatorTriage {
         staleAfterDays: Int = staleAfterDays
     ) -> [(device: SimulatorDevice, reason: Reason)] {
         devices.compactMap { device in
-            // Запущенный не трогаем ни при каких условиях.
+            // A running simulator is never suggested, whatever its age.
             guard !device.isBooted else { return nil }
 
             if device.isUnavailable { return (device, .runtimeMissing) }
 
             guard let lastUsed = device.lastUsed else { return nil }
-            // Истекшее время, а не календарные сутки: Calendar на переходе
-            // летнего времени теряет день и даёт 119 вместо 120.
+            // Elapsed time rather than calendar days: Calendar loses a day
+            // across a daylight-saving change and reports 119 instead of 120.
             let days = Int(now.timeIntervalSince(lastUsed) / 86_400)
             guard days >= staleAfterDays else { return nil }
 
@@ -34,7 +34,7 @@ public enum SimulatorTriage {
         }
     }
 
-    /// Runtime без единого устройства — держать его незачем.
+    /// A runtime with no devices at all is not worth keeping.
     public static func unusedRuntimes(_ runtimes: [SimulatorRuntime]) -> [SimulatorRuntime] {
         runtimes.filter { $0.deviceCount == 0 && $0.isDeletable }
     }

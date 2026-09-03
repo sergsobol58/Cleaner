@@ -32,13 +32,13 @@ final class SimulatorParserTests: XCTestCase {
         Size: 8.2G
     """
 
-    // MARK: - Устройства
+    // MARK: - Devices
 
     func testParsesAllDevices() {
         XCTAssertEqual(SimulatorParser.devices(from: devicesOutput).count, 5)
     }
 
-    /// На этом спотыкался предшественник: разбор по скобкам считал UDID'ом "M5".
+    /// The predecessor stumbled here: splitting on parentheses read "M5" as the UDID.
     func testParsesNamesContainingParentheses() {
         let devices = SimulatorParser.devices(from: devicesOutput)
 
@@ -59,7 +59,7 @@ final class SimulatorParserTests: XCTestCase {
 
         XCTAssertEqual(unavailable.map(\.name), ["iPhone 17"])
         XCTAssertEqual(unavailable.first?.runtime, "iOS 26.2",
-                       "имя runtime достаётся из идентификатора SimRuntime")
+                       "the runtime name is recovered from the SimRuntime identifier")
     }
 
     func testAssignsRuntimeFromPrecedingHeader() {
@@ -68,7 +68,7 @@ final class SimulatorParserTests: XCTestCase {
         XCTAssertEqual(devices.first { $0.name == "iPad (A16)" }?.runtime, "iOS 26.3")
     }
 
-    // MARK: - Runtime
+    // MARK: - Runtimes
 
     func testParsesRuntimes() {
         let runtimes = SimulatorParser.runtimes(from: runtimesOutput)
@@ -84,16 +84,16 @@ final class SimulatorParserTests: XCTestCase {
     func testParsesDeletableFlag() {
         let runtimes = SimulatorParser.runtimes(from: runtimesOutput)
         XCTAssertTrue(runtimes[0].isDeletable)
-        XCTAssertFalse(runtimes[2].isDeletable, "Deletable: NO должен запрещать удаление")
+        XCTAssertFalse(runtimes[2].isDeletable, "Deletable: NO must forbid removal")
     }
 
     func testNeverUsedRuntimeHasNoDate() {
         let runtimes = SimulatorParser.runtimes(from: runtimesOutput)
         XCTAssertNotNil(runtimes[0].lastUsed)
-        XCTAssertNil(runtimes[1].lastUsed, "у неиспользованного runtime даты нет")
+        XCTAssertNil(runtimes[1].lastUsed, "an unused runtime carries no date")
     }
 
-    /// Ради этого числа всё и затевается: runtime без устройств — кандидат на снос.
+    /// This number is the whole point: a runtime with no devices can go.
     func testCountsDevicesPerRuntime() {
         let counted = SimulatorParser.countDevices(
             runtimes: SimulatorParser.runtimes(from: runtimesOutput),

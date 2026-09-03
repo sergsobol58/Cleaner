@@ -5,15 +5,21 @@ struct ContentView: View {
     @State private var model = CleanerModel()
     @State private var section: Section = .files
 
-    private enum Section: String, CaseIterable {
-        case files = "Файлы"
-        case simulators = "Симуляторы"
+    private enum Section: Hashable, CaseIterable {
+        case files, simulators
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .files: "Files"
+            case .simulators: "Simulators"
+            }
+        }
     }
 
     var body: some View {
         VStack(spacing: 0) {
             Picker("", selection: $section) {
-                ForEach(Section.allCases, id: \.self) { Text($0.rawValue).tag($0) }
+                ForEach(Section.allCases, id: \.self) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -43,12 +49,12 @@ struct ContentView: View {
         case .idle, .scanning:
             centered {
                 ProgressView()
-                Text("Ищем, что можно освободить…").foregroundStyle(.secondary)
+                Text("Looking for space to reclaim…").foregroundStyle(.secondary)
             }
         case .removing:
             centered {
                 ProgressView()
-                Text("Перемещаем в Корзину…").foregroundStyle(.secondary)
+                Text("Moving to the Trash…").foregroundStyle(.secondary)
             }
         case .finished:
             ReportView(report: model.report) { Task { await model.scan() } }
@@ -79,8 +85,8 @@ struct ContentView: View {
         .listStyle(.inset)
     }
 
-    /// Категория с одним корнем показывает файлы сразу; с несколькими —
-    /// сперва группы, иначе имена вроде "content-v2" ничего не значат.
+    /// A category with one root shows its files directly; with several it
+    /// shows groups first, otherwise a name like "content-v2" means nothing.
     @ViewBuilder
     private func detail(of scan: CategoryScan) -> some View {
         let groups = scan.groups
@@ -102,22 +108,22 @@ struct ContentView: View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.selectedBytes > 0
-                     ? "Выбрано \(model.selectedBytes.formattedBytes) · объектов: \(model.selectedItems.count)"
-                     : "Ничего не выбрано")
+                     ? "Selected \(model.selectedBytes.formattedBytes) · \(model.selectedItems.count.itemsText)"
+                     : "Nothing selected")
                     .font(.headline)
-                Text("Найдено \(model.foundBytes.formattedBytes)")
+                Text("Found \(model.foundBytes.formattedBytes)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Spacer()
 
-            Button("Сканировать заново") {
+            Button("Scan again") {
                 Task { await model.scan() }
             }
             .disabled(model.phase == .scanning || model.phase == .removing)
 
-            Button("Переместить в Корзину…") {
+            Button("Move to Trash…") {
                 model.isConfirming = true
             }
             .keyboardShortcut(.defaultAction)
@@ -128,13 +134,13 @@ struct ContentView: View {
 
     private var confirmation: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Переместить в Корзину?").font(.title3.bold())
+            Text("Move to the Trash?").font(.title3.bold())
 
             VStack(alignment: .leading, spacing: 6) {
                 ForEach(model.touchedScans) { scan in
                     HStack {
                         Text(scan.category.title)
-                        Text("\(model.selectedCount(in: scan)) из \(scan.items.count)")
+                        Text("\(model.selectedCount(in: scan)) of \(scan.items.count)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                         Spacer()
@@ -145,10 +151,10 @@ struct ContentView: View {
                 }
             }
 
-            Text("Всего \(model.selectedBytes.formattedBytes) в \(model.selectedItems.count) объектах.")
+            Text("Total: \(model.selectedBytes.formattedBytes) · \(model.selectedItems.count.itemsText)")
                 .font(.callout)
 
-            Label("Ничего не стирается насовсем: файлы уедут в Корзину, откуда их вернёт кнопка «Положить обратно».",
+            Label("Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home.",
                   systemImage: "arrow.uturn.backward")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -156,9 +162,9 @@ struct ContentView: View {
 
             HStack {
                 Spacer()
-                Button("Отмена") { model.isConfirming = false }
+                Button("Cancel") { model.isConfirming = false }
                     .keyboardShortcut(.cancelAction)
-                Button("Переместить") {
+                Button("Move") {
                     model.isConfirming = false
                     Task { await model.removeSelected() }
                 }
@@ -175,8 +181,8 @@ struct ContentView: View {
     }
 }
 
-/// Галочка категории умеет промежуточное состояние: нажатие по частично
-/// выбранной категории добирает остаток.
+/// The category checkbox carries a partial state: clicking a partly selected
+/// category completes it rather than clearing it.
 private struct TriStateBox: View {
     let coverage: Coverage
     let action: () -> Void
@@ -192,9 +198,9 @@ private struct TriStateBox: View {
 
     private var symbol: String {
         switch coverage {
-        case .none:    "square"
+        case .none: "square"
         case .partial: "minus.square.fill"
-        case .all:     "checkmark.square.fill"
+        case .all: "checkmark.square.fill"
         }
     }
 }
@@ -212,11 +218,15 @@ private struct CategoryHeader: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(scan.category.title)
-                Text(scan.items.isEmpty
-                     ? "Пусто"
-                     : "\(scan.category.consequence) · объектов: \(scan.items.count)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                Group {
+                    if scan.items.isEmpty {
+                        Text("Empty")
+                    } else {
+                        Text("\(scan.category.consequence) · \(scan.items.count.itemsText)")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
             }
             Spacer()
             Text(scan.totalBytes.formattedBytes)
@@ -238,7 +248,7 @@ private struct GroupRow: View {
             }
             Text(model.title(for: group.root))
                 .font(.callout.weight(.medium))
-            Text("объектов: \(group.items.count)")
+            Text(group.items.count.itemsText)
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -289,17 +299,17 @@ private struct ReportView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(report?.isClean == true ? .green : .orange)
 
-            Text("Перемещено \((report?.movedBytes ?? 0).formattedBytes)")
+            Text("Moved \((report?.movedBytes ?? 0).formattedBytes)")
                 .font(.title3.bold())
 
             if let failed = report?.failed, !failed.isEmpty {
-                Text("Не удалось: \(failed.count)")
+                Text("Failed: \(failed.count)")
                     .foregroundStyle(.secondary)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 4) {
                         ForEach(failed, id: \.item.id) { outcome in
-                            Text("\(outcome.item.url.lastPathComponent) — \(outcome.error ?? "неизвестно")")
+                            Text("\(outcome.item.url.lastPathComponent) — \(outcome.error ?? String(localized: "unknown reason"))")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         }
@@ -309,7 +319,7 @@ private struct ReportView: View {
                 .frame(maxHeight: 120)
             }
 
-            Button("Сканировать заново", action: onRescan)
+            Button("Scan again", action: onRescan)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)

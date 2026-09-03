@@ -2,7 +2,7 @@ import XCTest
 @testable import CleanerKit
 
 final class SelectionStateTests: XCTestCase {
-    private let root = URL(fileURLWithPath: "/корень")
+    private let root = URL(fileURLWithPath: "/root-dir")
 
     private func item(_ name: String, bytes: Int64 = 100) -> ScanItem {
         ScanItem(url: root.appendingPathComponent(name), sizeBytes: bytes,
@@ -15,7 +15,7 @@ final class SelectionStateTests: XCTestCase {
 
     func testTogglesSingleItem() {
         var sut = SelectionState()
-        let one = item("один")
+        let one = item("one")
 
         sut.toggle(one)
         XCTAssertTrue(sut.contains(one))
@@ -24,10 +24,10 @@ final class SelectionStateTests: XCTestCase {
         XCTAssertFalse(sut.contains(one))
     }
 
-    /// Повторная установка того же значения ничего не меняет.
+    /// Setting the same value twice changes nothing.
     func testSetIsIdempotent() {
         var sut = SelectionState()
-        let one = item("один")
+        let one = item("one")
 
         sut.set(one, selected: true)
         sut.set(one, selected: true)
@@ -40,7 +40,7 @@ final class SelectionStateTests: XCTestCase {
 
     func testCoverageReflectsPartialSelection() {
         var sut = SelectionState()
-        let items = [item("а"), item("б"), item("в")]
+        let items = [item("a"), item("b"), item("c")]
 
         XCTAssertEqual(sut.coverage(of: items), .none)
 
@@ -55,10 +55,10 @@ final class SelectionStateTests: XCTestCase {
         XCTAssertEqual(SelectionState().coverage(of: []), .none)
     }
 
-    /// Частично выбранная группа при нажатии добирается до полной.
+    /// Clicking a partly selected group completes it.
     func testToggleAllCompletesPartialGroup() {
         var sut = SelectionState()
-        let items = [item("а"), item("б")]
+        let items = [item("a"), item("b")]
         sut.toggle(items[0])
 
         sut.toggleAll(items)
@@ -68,7 +68,7 @@ final class SelectionStateTests: XCTestCase {
 
     func testToggleAllClearsFullGroup() {
         var sut = SelectionState()
-        let items = [item("а"), item("б")]
+        let items = [item("a"), item("b")]
         sut.set(items, selected: true)
 
         sut.toggleAll(items)
@@ -78,9 +78,9 @@ final class SelectionStateTests: XCTestCase {
 
     func testCountsSelectedBytes() {
         var sut = SelectionState()
-        let items = [item("а", bytes: 300), item("б", bytes: 700)]
-        let scan = CategoryScan(id: "к", category: CleanupCategory(
-            id: "к", title: "К", consequence: "—", roots: [root]), items: items)
+        let items = [item("a", bytes: 300), item("b", bytes: 700)]
+        let scan = CategoryScan(id: "c", category: CleanupCategory(
+            id: "c", title: "C", consequence: "—", roots: [root]), items: items)
 
         sut.toggle(items[1])
 
@@ -88,16 +88,16 @@ final class SelectionStateTests: XCTestCase {
         XCTAssertEqual(sut.items(from: [scan]).map(\.url), [items[1].url])
     }
 
-    /// После удаления пути исчезают — отметки на них надо снять,
-    /// иначе счётчик показывает выбранным то, чего уже нет.
+    /// Paths disappear once removed, so their marks must go too — otherwise
+    /// the counter reports things that no longer exist as selected.
     func testForgetsItemsThatVanished() {
         var sut = SelectionState()
-        let gone = item("исчез")
-        let stays = item("остался")
+        let gone = item("gone")
+        let stays = item("still-there")
         sut.set([gone, stays], selected: true)
 
-        let scan = CategoryScan(id: "к", category: CleanupCategory(
-            id: "к", title: "К", consequence: "—", roots: [root]), items: [stays])
+        let scan = CategoryScan(id: "c", category: CleanupCategory(
+            id: "c", title: "C", consequence: "—", roots: [root]), items: [stays])
         sut.keepOnly([scan])
 
         XCTAssertFalse(sut.contains(gone))

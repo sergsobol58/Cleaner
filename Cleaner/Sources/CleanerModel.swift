@@ -13,13 +13,13 @@ final class CleanerModel {
     private(set) var scans: [CategoryScan] = []
     private(set) var report: RemovalReport?
 
-    /// Отмеченные находки. Пусто по умолчанию: выбор — за пользователем,
-    /// приложение ничего не предрешает.
+    /// Marked findings. Empty by default: the choice belongs to the user and
+    /// the app does not make it for them.
     var selection = SelectionState()
     var expanded: Set<String> = []
     var isConfirming = false
 
-    // MARK: Симуляторы — отдельный мир: удаление здесь необратимо
+    // MARK: Simulators — a world apart, because removal there is irreversible
 
     private(set) var devices: [SimulatorDevice] = []
     private(set) var runtimes: [SimulatorRuntime] = []
@@ -36,7 +36,7 @@ final class CleanerModel {
     var selectedItems: [ScanItem] { selection.items(from: scans) }
     var selectedBytes: Int64 { selection.bytes(in: scans) }
 
-    /// Категории, в которых что-то отмечено, — для листа подтверждения.
+    /// Categories with something marked — used by the confirmation sheet.
     var touchedScans: [CategoryScan] {
         scans.filter { selection.coverage(of: $0.items) != .none }
     }
@@ -48,6 +48,7 @@ final class CleanerModel {
     func selectedCount(in scan: CategoryScan) -> Int {
         selection.items(from: [scan]).count
     }
+
     var foundBytes: Int64 { scans.reduce(0) { $0 + $1.totalBytes } }
     var canRemove: Bool { phase == .results && !selectedItems.isEmpty }
 
@@ -71,7 +72,7 @@ final class CleanerModel {
         phase = .finished
     }
 
-    // MARK: Симуляторы
+    // MARK: Simulators
 
     var selectedDevices: [SimulatorDevice] { devices.filter { deviceSelection.contains($0.id) } }
     var selectedRuntimes: [SimulatorRuntime] { runtimes.filter { runtimeSelection.contains($0.id) } }
@@ -85,8 +86,8 @@ final class CleanerModel {
         acknowledgedIrreversible && !(selectedDevices.isEmpty && selectedRuntimes.isEmpty)
     }
 
-    /// Неиспользуемое: нет runtime, либо каталогом не пользовались более
-    /// SimulatorTriage.staleAfterDays дней; плюс runtime без устройств.
+    /// Unused: no runtime at all, or the directory has not been touched for
+    /// more than SimulatorTriage.staleAfterDays; plus runtimes with no devices.
     var unusedDevices: [(device: SimulatorDevice, reason: SimulatorTriage.Reason)] {
         SimulatorTriage.unusedDevices(devices)
     }
@@ -95,15 +96,16 @@ final class CleanerModel {
 
     var hasUnused: Bool { !unusedDevices.isEmpty || !unusedRuntimes.isEmpty }
 
-    /// Почему предлагать нечего. Погашенная кнопка без объяснения — загадка.
+    /// Why there is nothing to offer. A dimmed button without an explanation
+    /// is a riddle.
     var unusedExplanation: String {
         guard simulatorsLoaded else { return "" }
         if hasUnused {
             let bytes = unusedDevices.reduce(0) { $0 + $1.device.sizeBytes }
                 + unusedRuntimes.reduce(0) { $0 + $1.sizeBytes }
-            return "Неиспользуемого: \(bytes.formattedBytes)"
+            return String(localized: "Unused: \(bytes.formattedBytes)")
         }
-        return "Неиспользуемого нет: у всех есть runtime, всеми пользовались за последние \(SimulatorTriage.staleAfterDays) дней"
+        return String(localized: "Nothing unused: every device has its runtime and none has been idle for \(SimulatorTriage.staleAfterDays.daysText)")
     }
 
     func loadSimulators() async {
@@ -123,13 +125,13 @@ final class CleanerModel {
     }
 
     func note(for device: SimulatorDevice) -> String {
-        if device.isBooted { return "запущен — удалить нельзя" }
-        if device.isUnavailable { return "runtime не установлен, запустить нельзя" }
+        if device.isBooted { return String(localized: "running — cannot be deleted") }
+        if device.isUnavailable { return String(localized: "runtime not installed, cannot launch") }
         guard let lastUsed = device.lastUsed else { return device.runtime }
 
         let days = Int(Date.now.timeIntervalSince(lastUsed) / 86_400)
         if days >= SimulatorTriage.staleAfterDays {
-            return "\(device.runtime) · не открывался \(days) дней"
+            return "\(device.runtime) · \(String(localized: "not opened for \(days.daysText)"))"
         }
         return "\(device.runtime) · \(lastUsed.formatted(date: .abbreviated, time: .omitted))"
     }
@@ -165,14 +167,18 @@ final class CleanerModel {
 
     nonisolated static func describe(_ error: Error) -> String {
         switch error as? SimulatorError {
-        case .deviceIsBooted: "симулятор запущен, сначала завершите его"
-        case .runtimeNotDeletable: "образ помечен как неудаляемый"
-        case let .commandFailed(command): "не выполнилось: \(command)"
-        case nil: error.localizedDescription
+        case .deviceIsBooted:
+            String(localized: "the simulator is running; shut it down first")
+        case .runtimeNotDeletable:
+            String(localized: "the image is marked as not deletable")
+        case let .commandFailed(command):
+            String(localized: "command failed: \(command)")
+        case nil:
+            error.localizedDescription
         }
     }
 
-    // MARK: Выбор
+    // MARK: Selection
 
     func coverage(of items: [ScanItem]) -> Coverage { selection.coverage(of: items) }
 
@@ -180,8 +186,8 @@ final class CleanerModel {
 
     func toggle(_ item: ScanItem) { selection.toggle(item) }
 
-    /// Явная установка, а не переключение: SwiftUI может прислать то же
-    /// значение повторно, и toggle тогда сработал бы дважды.
+    /// An explicit set rather than a toggle: SwiftUI may deliver the same
+    /// value twice, and a toggle would then fire twice.
     func setSelected(_ item: ScanItem, _ on: Bool) { selection.set(item, selected: on) }
 
     func isSelected(_ item: ScanItem) -> Bool { selection.contains(item) }
@@ -192,10 +198,9 @@ final class CleanerModel {
         if open { expanded.insert(scan.id) } else { expanded.remove(scan.id) }
     }
 
-    /// Имя корня в понятном виде: ".npm/_cacache" вместо голого "_cacache".
+    /// A readable root name: ".npm/_cacache" instead of a bare "_cacache".
     func title(for root: URL) -> String {
-        let parts = root.pathComponents.suffix(2)
-        return parts.joined(separator: "/")
+        root.pathComponents.suffix(2).joined(separator: "/")
     }
 
     func describe(_ item: ScanItem) -> String {
@@ -207,4 +212,13 @@ extension Int64 {
     var formattedBytes: String {
         formatted(.byteCount(style: .file))
     }
+}
+
+/// Counted nouns live in their own strings with exactly one numeric argument:
+/// Ukrainian needs one/few/many forms, and a plural rule can only key off a
+/// single number.
+extension Int {
+    var itemsText: String { String(localized: "\(self) items") }
+    var daysText: String { String(localized: "\(self) days") }
+    var devicesText: String { String(localized: "\(self) devices") }
 }

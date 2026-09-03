@@ -1,7 +1,7 @@
 import XCTest
 @testable import CleanerKit
 
-/// Подставная корзина: тест не должен ничего удалять по-настоящему.
+/// A stand-in trash: a test must never delete anything for real.
 private final class TrashSpy: FileTrashing, @unchecked Sendable {
     private let lock = NSLock()
     private var _calls: [URL] = []
@@ -15,7 +15,7 @@ private final class TrashSpy: FileTrashing, @unchecked Sendable {
         lock.withLock { _calls.append(url) }
         if failOn.contains(url) {
             throw NSError(domain: "TrashSpy", code: 1,
-                          userInfo: [NSLocalizedDescriptionKey: "корзина отказала"])
+                          userInfo: [NSLocalizedDescriptionKey: "the trash refused"])
         }
     }
 }
@@ -52,8 +52,8 @@ final class RemoverTests: XCTestCase {
     }
 
     func testMovesValidItems() async throws {
-        let first = try makeDir("первый")
-        let second = try makeDir("второй")
+        let first = try makeDir("first")
+        let second = try makeDir("second")
         let spy = TrashSpy()
 
         let report = await makeRemover(spy).remove([item(first), item(second)])
@@ -64,23 +64,23 @@ final class RemoverTests: XCTestCase {
         XCTAssertEqual(report.movedBytes, 2_000)
     }
 
-    /// Между сканом и нажатием кнопки проходят минуты. За это время путь мог
-    /// стать чем угодно, поэтому охрана проходится заново — и до, и вместо
-    /// доверия результатам скана.
+    /// Minutes pass between the scan and the button press, and the path
+    /// could have become anything in the meantime. The guard therefore runs
+    /// again instead of trusting the scan results.
     func testRevalidatesBeforeDeleting() async throws {
-        let forbidden = try makeDir("стало-запрещённым")
+        let forbidden = try makeDir("became-forbidden")
         let spy = TrashSpy()
 
         let report = await makeRemover(spy, denied: [forbidden]).remove([item(forbidden)])
 
-        XCTAssertTrue(spy.calls.isEmpty, "запрещённое не должно доходить до корзины")
+        XCTAssertTrue(spy.calls.isEmpty, "forbidden paths must never reach the trash")
         XCTAssertEqual(report.failed.count, 1)
         XCTAssertTrue(report.moved.isEmpty)
         XCTAssertEqual(report.movedBytes, 0)
     }
 
     func testItemDeletedBehindOurBackIsReportedNotCrashed() async throws {
-        let vanished = root.appendingPathComponent("испарился")
+        let vanished = root.appendingPathComponent("vanished")
         let spy = TrashSpy()
 
         let report = await makeRemover(spy).remove([item(vanished)])
@@ -90,15 +90,15 @@ final class RemoverTests: XCTestCase {
     }
 
     func testOneFailureDoesNotStopTheRest() async throws {
-        let good = try makeDir("хороший")
-        let bad = try makeDir("плохой")
+        let good = try makeDir("good")
+        let bad = try makeDir("bad")
         let spy = TrashSpy(failOn: [bad])
 
         let report = await makeRemover(spy).remove([item(bad), item(good)])
 
         XCTAssertEqual(report.moved.map { $0.item.url }, [good])
         XCTAssertEqual(report.failed.map { $0.item.url }, [bad])
-        XCTAssertEqual(report.failed.first?.error, "корзина отказала")
+        XCTAssertEqual(report.failed.first?.error, "the trash refused")
     }
 
     func testEmptySelectionDoesNothing() async {

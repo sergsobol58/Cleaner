@@ -1,9 +1,9 @@
 #!/usr/bin/env swift
-// Генератор иконки приложения.
+// Application icon generator.
 //
-// Иконка лежит в репозитории как набор PNG, но собирается этим скриптом:
-// картинку непонятного происхождения в проект кладут один раз, а потом никто
-// не знает, как её поправить.
+// The icon ships in the repository as a set of PNGs, but it is produced by
+// this script: an image of unknown origin gets dropped into a project once,
+// and afterwards nobody knows how to change it.
 //
 //   swift tools/make-icon.swift Cleaner/Resources/Assets.xcassets/AppIcon.appiconset
 
@@ -13,7 +13,7 @@ let outputPath = CommandLine.arguments.count > 1
     ? CommandLine.arguments[1]
     : "Cleaner/Resources/Assets.xcassets/AppIcon.appiconset"
 
-// Синий градиент и белая метёлка: без затей, зато читается в 16 пикселей.
+// A blue gradient and a white wand: plain, but legible at 16 pixels.
 let top = NSColor(srgbRed: 0.36, green: 0.66, blue: 1.00, alpha: 1)
 let bottom = NSColor(srgbRed: 0.04, green: 0.36, blue: 0.82, alpha: 1)
 
@@ -33,12 +33,12 @@ func render(pixels: Int) -> Data {
         bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
         colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
-    ) else { fatalError("не удалось создать буфер \(pixels)px") }
+    ) else { fatalError("could not create a \(pixels)px buffer") }
 
     NSGraphicsContext.saveGraphicsState()
     NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
 
-    // Скруглённый квадрат в духе системных иконок.
+    // A rounded square in the spirit of the system icons.
     let inset = side * 0.06
     let box = NSRect(x: inset, y: inset, width: side - inset * 2, height: side - inset * 2)
     let radius = box.width * 0.2237
@@ -46,7 +46,7 @@ func render(pixels: Int) -> Data {
     squircle.addClip()
     NSGradient(starting: top, ending: bottom)?.draw(in: box, angle: -90)
 
-    // Глиф берём из SF Symbols: рисовать метёлку вручную — заведомо хуже.
+    // The glyph comes from SF Symbols: drawing a wand by hand would be worse.
     if let symbol = NSImage(systemSymbolName: "wand.and.sparkles", accessibilityDescription: nil),
        let configured = symbol.withSymbolConfiguration(
            .init(pointSize: side * 0.46, weight: .medium)) {
@@ -63,7 +63,7 @@ func render(pixels: Int) -> Data {
     NSGraphicsContext.restoreGraphicsState()
 
     guard let data = rep.representation(using: .png, properties: [:]) else {
-        fatalError("не удалось получить PNG \(pixels)px")
+        fatalError("could not encode the \(pixels)px PNG")
     }
     return data
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-/// Причина, по которой путь не допущен к удалению.
+/// Why a path was refused for deletion.
 public enum GuardRejection: Error, Equatable, Sendable {
     case notAbsolute
     case traversal
@@ -11,10 +11,10 @@ public enum GuardRejection: Error, Equatable, Sendable {
     case symlink
 }
 
-/// Единственные ворота, через которые проходит всё удаляемое.
+/// The single gate every deletable path passes through.
 ///
-/// Корни и стоп-лист передаются снаружи, а не зашиты константами: так проверки
-/// можно гонять на временном каталоге, не трогая настоящий дом пользователя.
+/// Roots and the deny list are injected rather than hardcoded, so the checks
+/// can run against a temporary directory instead of the user's real home.
 public struct PathGuard: Sendable {
     private let allowedRoots: [[String]]
     private let deniedPaths: [[String]]
@@ -28,16 +28,16 @@ public struct PathGuard: Sendable {
         let raw = url.path
 
         guard raw.hasPrefix("/") else { return .failure(.notAbsolute) }
-        // Проверяем до нормализации: standardized молча схлопнул бы ".." и
-        // превратил обход каталогов в безобидный путь.
+        // Checked before normalisation: `standardized` would quietly collapse
+        // ".." and turn directory traversal into an innocent-looking path.
         guard !url.pathComponents.contains("..") else { return .failure(.traversal) }
 
         let parts = Self.components(of: url)
 
         if allowedRoots.contains(parts) { return .failure(.isRootItself) }
 
-        // Сравнение в обе стороны: нельзя ни удалить запрещённое,
-        // ни удалить каталог, внутри которого запрещённое лежит.
+        // Compared both ways: neither delete something forbidden, nor delete a
+        // directory that has something forbidden inside it.
         for denied in deniedPaths
             where denied == parts
             || Self.isPrefix(denied, of: parts)
@@ -49,8 +49,8 @@ public struct PathGuard: Sendable {
             return .failure(.outsideAllowedRoots)
         }
 
-        // attributesOfItem не идёт по ссылке — именно это нам и нужно,
-        // иначе симлинк выдал бы себя за свою цель.
+        // attributesOfItem does not follow links, which is exactly what we
+        // need here: otherwise a symlink would pass itself off as its target.
         guard let attributes = try? FileManager.default.attributesOfItem(atPath: raw) else {
             return .failure(.doesNotExist)
         }
@@ -61,8 +61,8 @@ public struct PathGuard: Sendable {
         return .success(url)
     }
 
-    /// Сравнение по компонентам, а не по строкам: строковый префикс счёл бы
-    /// "/a/CachesOther" продолжением "/a/Caches".
+    /// Compared by path component rather than by string: a string prefix would
+    /// treat "/a/CachesOther" as living inside "/a/Caches".
     private static func isPrefix(_ prefix: [String], of parts: [String]) -> Bool {
         guard prefix.count < parts.count else { return false }
         return Array(parts.prefix(prefix.count)) == prefix
