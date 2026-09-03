@@ -44,7 +44,7 @@ final class RemoverTests: XCTestCase {
     }
 
     private func item(_ url: URL, bytes: Int64 = 1_000) -> ScanItem {
-        ScanItem(url: url, sizeBytes: bytes, modified: .now)
+        ScanItem(url: url, sizeBytes: bytes, modified: .now, root: root)
     }
 
     private func makeRemover(_ spy: TrashSpy, denied: [URL] = []) -> Remover {

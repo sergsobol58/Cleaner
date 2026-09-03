@@ -6,11 +6,31 @@ public struct ScanItem: Identifiable, Sendable, Equatable, Hashable {
     public var url: URL { id }
     public let sizeBytes: Int64
     public let modified: Date
+    /// Корень, из которого пришла находка. Без него имя вроде "content-v2"
+    /// в общем списке ничего не говорит.
+    public let root: URL
 
-    public init(url: URL, sizeBytes: Int64, modified: Date) {
+    public init(url: URL, sizeBytes: Int64, modified: Date, root: URL) {
         self.id = url
         self.sizeBytes = sizeBytes
         self.modified = modified
+        self.root = root
+    }
+}
+
+/// Находки одного корня внутри категории.
+public struct ScanGroup: Identifiable, Sendable {
+    public let id: URL
+    public var root: URL { id }
+    public let items: [ScanItem]
+
+    public var totalBytes: Int64 { items.reduce(0) { $0 + $1.sizeBytes } }
+
+    /// Разбивка по корням, крупные группы сверху. Пустые корни не показываем.
+    public var groups: [ScanGroup] {
+        Dictionary(grouping: items, by: \.root)
+            .map { ScanGroup(id: $0.key, items: $0.value.sorted { $0.sizeBytes > $1.sizeBytes }) }
+            .sorted { $0.totalBytes > $1.totalBytes }
     }
 }
 
@@ -21,6 +41,13 @@ public struct CategoryScan: Identifiable, Sendable {
     public let items: [ScanItem]
 
     public var totalBytes: Int64 { items.reduce(0) { $0 + $1.sizeBytes } }
+
+    /// Разбивка по корням, крупные группы сверху. Пустые корни не показываем.
+    public var groups: [ScanGroup] {
+        Dictionary(grouping: items, by: \.root)
+            .map { ScanGroup(id: $0.key, items: $0.value.sorted { $0.sizeBytes > $1.sizeBytes }) }
+            .sorted { $0.totalBytes > $1.totalBytes }
+    }
 }
 
 /// Осмотр категорий. Только чтение: ничего не изменяет и не удаляет.
@@ -44,11 +71,13 @@ public struct DiskScanner: Sendable {
     }
 
     private func scanOne(_ category: CleanupCategory) async -> CategoryScan {
-        let candidates = category.roots.flatMap(children(of:))
+        let candidates = category.roots.flatMap { root in
+            children(of: root).map { (root: root, url: $0) }
+        }
 
         let items = await withTaskGroup(of: ScanItem?.self) { group in
-            for url in candidates {
-                group.addTask { measure(url) }
+            for candidate in candidates {
+                group.addTask { measure(candidate.url, root: candidate.root) }
             }
             var found: [ScanItem] = []
             for await item in group { if let item { found.append(item) } }
@@ -67,7 +96,7 @@ public struct DiskScanner: Sendable {
             options: [.skipsHiddenFiles])) ?? []
     }
 
-    private func measure(_ url: URL) -> ScanItem? {
+    private func measure(_ url: URL, root: URL) -> ScanItem? {
         // Что не проходит охрану, то и показывать незачем — иначе пользователь
         // отметит галочку, а на удалении получит необъяснимый отказ.
         guard case .success = pathGuard.validate(url) else { return nil }
@@ -75,7 +104,8 @@ public struct DiskScanner: Sendable {
         let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
             .contentModificationDate ?? .distantPast
 
-        return ScanItem(url: url, sizeBytes: CleanerKit.allocatedSize(of: url), modified: modified)
+        return ScanItem(url: url, sizeBytes: CleanerKit.allocatedSize(of: url),
+                        modified: modified, root: root)
     }
 
 }

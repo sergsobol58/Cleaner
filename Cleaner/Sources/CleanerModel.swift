@@ -13,9 +13,10 @@ final class CleanerModel {
     private(set) var scans: [CategoryScan] = []
     private(set) var report: RemovalReport?
 
-    /// Идентификаторы отмеченных категорий. Пусто по умолчанию: выбор — за
-    /// пользователем, приложение ничего не предрешает.
-    var selection: Set<String> = []
+    /// Отмеченные находки. Пусто по умолчанию: выбор — за пользователем,
+    /// приложение ничего не предрешает.
+    var selection = SelectionState()
+    var expanded: Set<String> = []
     var isConfirming = false
 
     // MARK: Симуляторы — отдельный мир: удаление здесь необратимо
@@ -32,19 +33,31 @@ final class CleanerModel {
     private let home = FileManager.default.homeDirectoryForCurrentUser
     private var pathGuard: PathGuard { Catalog.pathGuard(home: home) }
 
-    var selectedScans: [CategoryScan] { scans.filter { selection.contains($0.id) } }
-    var selectedItems: [ScanItem] { selectedScans.flatMap(\.items) }
-    var selectedBytes: Int64 { selectedScans.reduce(0) { $0 + $1.totalBytes } }
+    var selectedItems: [ScanItem] { selection.items(from: scans) }
+    var selectedBytes: Int64 { selection.bytes(in: scans) }
+
+    /// Категории, в которых что-то отмечено, — для листа подтверждения.
+    var touchedScans: [CategoryScan] {
+        scans.filter { selection.coverage(of: $0.items) != .none }
+    }
+
+    func selectedBytes(in scan: CategoryScan) -> Int64 {
+        selection.items(from: [scan]).reduce(0) { $0 + $1.sizeBytes }
+    }
+
+    func selectedCount(in scan: CategoryScan) -> Int {
+        selection.items(from: [scan]).count
+    }
     var foundBytes: Int64 { scans.reduce(0) { $0 + $1.totalBytes } }
     var canRemove: Bool { phase == .results && !selectedItems.isEmpty }
 
     func scan() async {
         phase = .scanning
-        selection = []
         report = nil
 
         let scanner = DiskScanner(pathGuard: pathGuard)
         scans = await scanner.scan(Catalog.standard(home: home))
+        selection.keepOnly(scans)
 
         phase = .results
     }
@@ -159,12 +172,34 @@ final class CleanerModel {
         }
     }
 
-    func binding(for scan: CategoryScan) -> Bool {
-        selection.contains(scan.id)
+    // MARK: Выбор
+
+    func coverage(of items: [ScanItem]) -> Coverage { selection.coverage(of: items) }
+
+    func toggleAll(_ items: [ScanItem]) { selection.toggleAll(items) }
+
+    func toggle(_ item: ScanItem) { selection.toggle(item) }
+
+    /// Явная установка, а не переключение: SwiftUI может прислать то же
+    /// значение повторно, и toggle тогда сработал бы дважды.
+    func setSelected(_ item: ScanItem, _ on: Bool) { selection.set(item, selected: on) }
+
+    func isSelected(_ item: ScanItem) -> Bool { selection.contains(item) }
+
+    func isExpanded(_ scan: CategoryScan) -> Bool { expanded.contains(scan.id) }
+
+    func setExpanded(_ scan: CategoryScan, _ open: Bool) {
+        if open { expanded.insert(scan.id) } else { expanded.remove(scan.id) }
     }
 
-    func toggle(_ scan: CategoryScan, on: Bool) {
-        if on { selection.insert(scan.id) } else { selection.remove(scan.id) }
+    /// Имя корня в понятном виде: ".npm/_cacache" вместо голого "_cacache".
+    func title(for root: URL) -> String {
+        let parts = root.pathComponents.suffix(2)
+        return parts.joined(separator: "/")
+    }
+
+    func describe(_ item: ScanItem) -> String {
+        item.modified.formatted(date: .abbreviated, time: .omitted)
     }
 }
 

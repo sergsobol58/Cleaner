@@ -88,6 +88,24 @@ final class ScannerTests: XCTestCase {
         XCTAssertTrue(names.contains("обычный"))
     }
 
+    func testGroupsFindingsByTheirRoot() async throws {
+        try write("первый/a.bin", bytes: 90_000)
+        try write("первый/b.bin", bytes: 10_000)
+        try write("второй/c.bin", bytes: 1_000)
+
+        let scans = await makeScanner().scan([category([
+            root.appendingPathComponent("первый"),
+            root.appendingPathComponent("второй"),
+        ])])
+        let groups = scans[0].groups
+
+        XCTAssertEqual(groups.count, 2)
+        XCTAssertEqual(groups.map { $0.root.lastPathComponent }, ["первый", "второй"],
+                       "крупные группы должны идти первыми")
+        XCTAssertEqual(groups[0].items.count, 2)
+        XCTAssertTrue(groups[0].items.allSatisfy { $0.root.lastPathComponent == "первый" })
+    }
+
     func testMergesSeveralRootsIntoOneCategory() async throws {
         try write("первый/a.bin", bytes: 1_000)
         try write("второй/b.bin", bytes: 1_000)

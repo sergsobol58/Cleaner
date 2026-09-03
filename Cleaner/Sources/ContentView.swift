@@ -60,23 +60,49 @@ struct ContentView: View {
     private var categoryList: some View {
         List {
             ForEach(model.scans) { scan in
-                CategoryRow(
-                    scan: scan,
-                    isOn: Binding(
-                        get: { model.binding(for: scan) },
-                        set: { model.toggle(scan, on: $0) }
-                    )
-                )
+                if scan.items.isEmpty {
+                    CategoryHeader(scan: scan, model: model)
+                } else {
+                    DisclosureGroup(
+                        isExpanded: Binding(
+                            get: { model.isExpanded(scan) },
+                            set: { model.setExpanded(scan, $0) }
+                        )
+                    ) {
+                        detail(of: scan)
+                    } label: {
+                        CategoryHeader(scan: scan, model: model)
+                    }
+                }
             }
         }
         .listStyle(.inset)
+    }
+
+    /// Категория с одним корнем показывает файлы сразу; с несколькими —
+    /// сперва группы, иначе имена вроде "content-v2" ничего не значат.
+    @ViewBuilder
+    private func detail(of scan: CategoryScan) -> some View {
+        let groups = scan.groups
+        if groups.count == 1 {
+            ForEach(groups[0].items) { item in
+                ItemRow(item: item, model: model)
+            }
+        } else {
+            ForEach(groups) { group in
+                GroupRow(group: group, model: model)
+                ForEach(group.items) { item in
+                    ItemRow(item: item, model: model, indent: 32)
+                }
+            }
+        }
     }
 
     private var footer: some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.selectedBytes > 0
-                     ? "Выбрано \(model.selectedBytes.formattedBytes)"
+                     ? "Выбрано \(model.selectedBytes.formattedBytes) · объектов: \(model.selectedItems.count)"
                      : "Ничего не выбрано")
                     .font(.headline)
                 Text("Найдено \(model.foundBytes.formattedBytes)")
@@ -105,11 +131,14 @@ struct ContentView: View {
             Text("Переместить в Корзину?").font(.title3.bold())
 
             VStack(alignment: .leading, spacing: 6) {
-                ForEach(model.selectedScans) { scan in
+                ForEach(model.touchedScans) { scan in
                     HStack {
                         Text(scan.category.title)
+                        Text("\(model.selectedCount(in: scan)) из \(scan.items.count)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         Spacer()
-                        Text(scan.totalBytes.formattedBytes)
+                        Text(model.selectedBytes(in: scan).formattedBytes)
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
                     }
@@ -146,27 +175,107 @@ struct ContentView: View {
     }
 }
 
-private struct CategoryRow: View {
-    let scan: CategoryScan
-    @Binding var isOn: Bool
+/// Галочка категории умеет промежуточное состояние: нажатие по частично
+/// выбранной категории добирает остаток.
+private struct TriStateBox: View {
+    let coverage: Coverage
+    let action: () -> Void
 
     var body: some View {
-        Toggle(isOn: $isOn) {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .foregroundStyle(coverage == .none ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tint))
+                .imageScale(.large)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var symbol: String {
+        switch coverage {
+        case .none:    "square"
+        case .partial: "minus.square.fill"
+        case .all:     "checkmark.square.fill"
+        }
+    }
+}
+
+private struct CategoryHeader: View {
+    let scan: CategoryScan
+    let model: CleanerModel
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            TriStateBox(coverage: model.coverage(of: scan.items)) {
+                model.toggleAll(scan.items)
+            }
+            .disabled(scan.items.isEmpty)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(scan.category.title)
+                Text(scan.items.isEmpty
+                     ? "Пусто"
+                     : "\(scan.category.consequence) · объектов: \(scan.items.count)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Text(scan.totalBytes.formattedBytes)
+                .monospacedDigit()
+                .foregroundStyle(scan.items.isEmpty ? .tertiary : .primary)
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+private struct GroupRow: View {
+    let group: ScanGroup
+    let model: CleanerModel
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            TriStateBox(coverage: model.coverage(of: group.items)) {
+                model.toggleAll(group.items)
+            }
+            Text(model.title(for: group.root))
+                .font(.callout.weight(.medium))
+            Text("объектов: \(group.items.count)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Text(group.totalBytes.formattedBytes)
+                .monospacedDigit()
+                .foregroundStyle(.secondary)
+        }
+        .padding(.leading, 12)
+        .padding(.vertical, 2)
+    }
+}
+
+private struct ItemRow: View {
+    let item: ScanItem
+    let model: CleanerModel
+    var indent: CGFloat = 12
+
+    var body: some View {
+        Toggle(isOn: Binding(
+            get: { model.isSelected(item) },
+            set: { model.setSelected(item, $0) }
+        )) {
             HStack(alignment: .firstTextBaseline) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(scan.category.title)
-                    Text(scan.items.isEmpty ? "Пусто" : scan.category.consequence)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
+                Text(item.url.lastPathComponent)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
                 Spacer()
-                Text(scan.totalBytes.formattedBytes)
+                Text(model.describe(item))
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                Text(item.sizeBytes.formattedBytes)
                     .monospacedDigit()
-                    .foregroundStyle(scan.items.isEmpty ? .tertiary : .primary)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 76, alignment: .trailing)
             }
         }
-        .disabled(scan.items.isEmpty)
-        .padding(.vertical, 4)
+        .padding(.leading, indent)
     }
 }
 
