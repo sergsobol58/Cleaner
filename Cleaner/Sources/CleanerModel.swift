@@ -12,6 +12,7 @@ final class CleanerModel {
     private(set) var phase: Phase = .idle
     private(set) var scans: [CategoryScan] = []
     private(set) var report: RemovalReport?
+    private(set) var lastScan: Date?
 
     /// Marked findings. Empty by default: the choice belongs to the user and
     /// the app does not make it for them.
@@ -59,8 +60,23 @@ final class CleanerModel {
         let scanner = DiskScanner(pathGuard: pathGuard)
         scans = await scanner.scan(Catalog.standard(home: home))
         selection.keepOnly(scans)
+        lastScan = .now
 
         phase = .results
+    }
+
+    /// The window and the menu bar panel both want fresh numbers on first
+    /// appearance, but only one of them should pay for the scan.
+    func scanIfNeeded() async {
+        guard phase == .idle else { return }
+        await scan()
+    }
+
+    /// After cleaning from the menu bar there is no report screen to leave,
+    /// so the panel goes straight back to showing results.
+    func removeSelectedAndRescan() async {
+        await removeSelected()
+        await scan()
     }
 
     func removeSelected() async {

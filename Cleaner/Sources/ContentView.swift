@@ -2,7 +2,7 @@ import CleanerKit
 import SwiftUI
 
 struct ContentView: View {
-    @State private var model = CleanerModel()
+    @Bindable var model: CleanerModel
     @State private var section: Section = .files
 
     private enum Section: Hashable, CaseIterable {
@@ -39,7 +39,7 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 560, minHeight: 440)
-        .task { await model.scan() }
+        .task { await model.scanIfNeeded() }
         .sheet(isPresented: $model.isConfirming) { confirmation }
     }
 

@@ -73,6 +73,25 @@ so `Text("Selected \(a) · \(b)")` becomes `Selected %@ · %@`, not
 `Selected %1$@ · %2$@`. A hand-written entry that guesses wrong never matches
 and fails quietly — the app simply shows English.
 
+## Menu bar
+
+The app also lives in the menu bar. The panel there shows what has piled up per
+category, lets you tick the categories you want gone, and removes them after a
+confirmation shown in the panel itself.
+
+That confirmation is deliberate. Sending you to the main window to confirm would
+defeat the point of cleaning from the menu bar; skipping it would break the rule
+the rest of the app is built on. So the panel asks, in place.
+
+**Run in the background only** drops the Dock icon and keeps the app in the menu
+bar. `WindowGroup` opens a window at launch whatever the preferences say, so in
+background mode `AppDelegate` closes that launch window and switches the
+activation policy before it can settle in — otherwise "menu bar only" would
+still start with a window on screen.
+
+Closing the window never quits the app: the menu bar item stays, and quitting is
+an explicit choice in the panel.
+
 ## Safety model
 
 The priority is keeping data, not cleaning thoroughly.
