@@ -107,7 +107,7 @@ one/few/many, а правило множини може спиратися ли�
 ані видалити заборонене, ані видалити теку, всередині якої заборонене лежить.
 Знести `Xcode/` не вийде, бо там `Archives`. У списку: `Documents`, `Desktop`,
 `Downloads`, iCloud Drive, Photos, Mail, Messages, Keychains, `~/.ssh`, резервні
-копії пристроїв, `Xcode/Archives`, `Xcode/UserData`.
+копії пристроїв, `Xcode/Archives`, `Xcode/UserData` і `~/Projects` — вихідний код ніколи не мотлох.
 
 Порівняння йде за компонентами шляху, а не за рядком: рядковий префікс вважав би
 `CachesOther` продовженням `Caches`.
@@ -137,9 +137,14 @@ one/few/many, а правило множини може спиратися ли�
 | Xcode DerivedData | Індекси та проміжні збірки | Перша збірка довша |
 | Символи пристроїв | `iOS/watchOS/tvOS DeviceSupport` | Завантажиться при під'єднанні пристрою |
 | Кеші пакетних менеджерів | npm, Yarn, pnpm, pip, CocoaPods, Gradle | Перше встановлення довше |
-| Робочі теки XcodeBuildMCP | Робочі копії збірок через MCP | Створяться заново |
+| Тестові збірки та логи XcodeBuildMCP | Завершені прогони в `workspaces/*` | Стан збірки лишається на місці |
 | Кеш SwiftPM і документації | `org.swift.swiftpm`, `DocumentationCache` | Завантажиться знову |
 | Кеші програм | Xcode, JetBrains, VS Code, Chrome, Homebrew, playwright та інші | Програми перебудують кеш |
+| Збірки для симулятора від Claude | `Application Support/Claude/simulator-builds` | Створяться під час наступної збірки |
+| Віртуальна машина пісочниці Claude | `Application Support/Claude/vm_bundles` | Кілька ГБ завантажаться знову |
+| Кеші настільних програм | Кеші Claude і VS Code, завантажені `.vsix` | Створяться заново; розширення лишаються |
+| Завантажені моделі та середовища | `~/.cache/huggingface`, `codex-runtimes`, `uv` | Завантажаться знову за потреби |
+| Логи програм | `~/Library/Logs` | Потрібні лише при пошуку причини |
 | Завантажені оновлення | Теки `*.ShipIt` у `~/Library/Caches` | За потреби завантажаться знову |
 
 Перелік `*.ShipIt` обчислюється за фактичним вмістом теки, а не заданий

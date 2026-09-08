@@ -12,7 +12,23 @@ final class CatalogTests: XCTestCase {
     func testHasExpectedCategories() {
         XCTAssertEqual(categories().map(\.id),
                        ["derivedData", "deviceSupport", "packageCaches",
-                        "xcodeBuildMCP", "swiftPM", "appCaches", "appUpdaters"])
+                        "xcodeBuildMCP", "swiftPM", "appCaches",
+                        "agentBuilds", "agentVM", "desktopAppCaches",
+                        "modelCaches", "logs", "appUpdaters"])
+    }
+
+    /// The whole workspace must not be a root: wiping it during a build in
+    /// flight breaks that build, so only finished products and logs are named.
+    func testMCPCategoryTargetsProductsAndLogsRatherThanWholeWorkspaces() {
+        let workspaces = home.appending(path: "Library/Developer/XcodeBuildMCP/workspaces")
+        let found = Catalog.standard(home: home, listing: { directory in
+            directory == workspaces ? [workspaces.appending(path: "proj-abc")] : []
+        }).first { $0.id == "xcodeBuildMCP" }
+
+        XCTAssertEqual(found?.roots.map { $0.pathComponents.suffix(2).joined(separator: "/") },
+                       ["proj-abc/test-products", "proj-abc/logs"])
+        XCTAssertFalse(found?.roots.contains(workspaces) ?? true,
+                       "the workspaces directory itself must never be a root")
     }
 
     func testUpdaterCategoryTakesOnlyShipItDirectories() {
@@ -78,7 +94,8 @@ final class CatalogTests: XCTestCase {
 
     func testGuardProtectsUserData() {
         let sut = Catalog.pathGuard(home: home, listing: { _ in [] })
-        for unsafe in ["Documents", "Desktop", "Downloads", "Library/Mobile Documents",
+        for unsafe in ["Documents", "Desktop", "Downloads", "Projects",
+                       "Library/Mobile Documents",
                        "Library/Keychains", ".ssh", "Library/Developer/Xcode/Archives",
                        "Library/Developer/Xcode/UserData"] {
             XCTAssertEqual(sut.validate(home.appendingPathComponent(unsafe)), .failure(.inDenyList),

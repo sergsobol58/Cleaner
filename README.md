@@ -109,7 +109,7 @@ you can neither delete something forbidden nor delete a directory that has
 something forbidden inside it. `Xcode/` cannot go because `Archives` lives
 there. On the list: `Documents`, `Desktop`, `Downloads`, iCloud Drive, Photos,
 Mail, Messages, Keychains, `~/.ssh`, device backups, `Xcode/Archives`,
-`Xcode/UserData`.
+`Xcode/UserData`, and `~/Projects` — source code is never junk.
 
 Comparison is by path component rather than by string: a string prefix would
 read `CachesOther` as part of `Caches`.
@@ -139,9 +139,14 @@ the name `content-v2` says nothing on its own, but under the heading
 | Xcode DerivedData | Indexes and intermediate builds | The next build is slower |
 | Device symbols | `iOS/watchOS/tvOS DeviceSupport` | Re-downloaded when a device connects |
 | Package manager caches | npm, Yarn, pnpm, pip, CocoaPods, Gradle | The next install is slower |
-| XcodeBuildMCP workspaces | Working copies of MCP builds | Recreated |
+| XcodeBuildMCP test products and logs | Finished test runs under `workspaces/*` | Build state is left in place |
 | SwiftPM and documentation cache | `org.swift.swiftpm`, `DocumentationCache` | Re-downloaded |
 | Application caches | Xcode, JetBrains, VS Code, Chrome, Homebrew, playwright and others | Apps rebuild their cache |
+| Simulator builds made by Claude | `Application Support/Claude/simulator-builds` | Recreated on the next build |
+| Claude sandbox virtual machine | `Application Support/Claude/vm_bundles` | Several GB downloaded again |
+| Desktop app caches | Claude and VS Code caches, cached `.vsix` installers | Rebuilt; installed extensions stay |
+| Downloaded models and runtimes | `~/.cache/huggingface`, `codex-runtimes`, `uv` | Downloaded again on demand |
+| Application logs | `~/Library/Logs` | Only useful while diagnosing |
 | Downloaded updates | `*.ShipIt` directories in `~/Library/Caches` | Downloaded again if needed |
 
 The `*.ShipIt` list is derived from what the directory actually contains rather

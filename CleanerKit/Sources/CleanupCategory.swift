@@ -58,11 +58,15 @@ public enum Catalog {
                     home.appending(path: ".gradle/caches"),
                 ]
             ),
+            // Deliberately not the whole workspace: wiping it during a build
+            // in flight breaks that build. Test bundles and logs are the bulk
+            // of the size anyway, and DerivedData and state stay put.
             CleanupCategory(
                 id: "xcodeBuildMCP",
-                title: kitString("XcodeBuildMCP workspaces"),
-                consequence: kitString("Recreated on the next build through MCP"),
-                roots: [home.appending(path: "Library/Developer/XcodeBuildMCP/workspaces")]
+                title: kitString("XcodeBuildMCP test products and logs"),
+                consequence: kitString("Finished test runs; build state stays in place"),
+                roots: listing(home.appending(path: "Library/Developer/XcodeBuildMCP/workspaces"))
+                    .flatMap { [$0.appending(path: "test-products"), $0.appending(path: "logs")] }
             ),
             CleanupCategory(
                 id: "swiftPM",
@@ -82,7 +86,45 @@ public enum Catalog {
                     "Google", "Homebrew", "ms-playwright", "ms-playwright-go",
                     "typescript", "node-gyp", "electron", "Cypress",
                     "com.openai.codex", "antigravity-updater",
+                    "notion-updater", "Jedi", "com.apple.helpd", "GeoServices",
                 ].map { home.appending(path: "Library/Caches/\($0)") }
+            ),
+            CleanupCategory(
+                id: "agentBuilds",
+                title: kitString("Simulator builds made by Claude"),
+                consequence: kitString("Recreated the next time the app is built"),
+                roots: [home.appending(path: "Library/Application Support/Claude/simulator-builds")]
+            ),
+            CleanupCategory(
+                id: "agentVM",
+                title: kitString("Claude sandbox virtual machine"),
+                consequence: kitString("Several gigabytes will be downloaded again on next use"),
+                roots: [home.appending(path: "Library/Application Support/Claude/vm_bundles")]
+            ),
+            CleanupCategory(
+                id: "desktopAppCaches",
+                title: kitString("Desktop app caches"),
+                consequence: kitString("Apps rebuild these; VS Code keeps its installed extensions"),
+                roots: [
+                    "Claude/Cache", "Claude/Code Cache",
+                    "Code/CachedExtensionVSIXs", "Code/CachedData",
+                ].map { home.appending(path: "Library/Application Support/\($0)") }
+            ),
+            CleanupCategory(
+                id: "modelCaches",
+                title: kitString("Downloaded models and runtimes"),
+                consequence: kitString("Downloaded again on demand, which can take a while"),
+                roots: [
+                    home.appending(path: ".cache/huggingface"),
+                    home.appending(path: ".cache/codex-runtimes"),
+                    home.appending(path: ".cache/uv"),
+                ]
+            ),
+            CleanupCategory(
+                id: "logs",
+                title: kitString("Application logs"),
+                consequence: kitString("Only useful while diagnosing a problem"),
+                roots: [home.appending(path: "Library/Logs")]
             ),
             CleanupCategory(
                 id: "appUpdaters",
@@ -112,6 +154,7 @@ public enum Catalog {
     public static func deniedPaths(home: URL) -> [URL] {
         [
             "Documents", "Desktop", "Downloads",
+            "Projects",                                // source code, never junk
             "Library/Mobile Documents",                // iCloud Drive
             "Library/Photos", "Library/Mail", "Library/Messages",
             "Library/Keychains",

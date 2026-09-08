@@ -104,40 +104,6 @@
         }
       }
     },
-    "XcodeBuildMCP workspaces": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "XcodeBuildMCP workspaces"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Робочі теки XcodeBuildMCP"
-          }
-        }
-      }
-    },
-    "Recreated on the next build through MCP": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recreated on the next build through MCP"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Створяться заново під час наступної збірки через MCP"
-          }
-        }
-      }
-    },
     "SwiftPM and documentation cache": {
       "extractionState": "manual",
       "localizations": {
@@ -372,6 +338,210 @@
           "stringUnit": {
             "state": "translated",
             "value": "невідомий runtime"
+          }
+        }
+      }
+    },
+    "XcodeBuildMCP test products and logs": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XcodeBuildMCP test products and logs"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тестові збірки та логи XcodeBuildMCP"
+          }
+        }
+      }
+    },
+    "Finished test runs; build state stays in place": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finished test runs; build state stays in place"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завершені прогони тестів; стан збірки лишається на місці"
+          }
+        }
+      }
+    },
+    "Simulator builds made by Claude": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Simulator builds made by Claude"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Збірки для симулятора, зроблені Claude"
+          }
+        }
+      }
+    },
+    "Recreated the next time the app is built": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recreated the next time the app is built"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Створяться заново під час наступної збірки"
+          }
+        }
+      }
+    },
+    "Claude sandbox virtual machine": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude sandbox virtual machine"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Віртуальна машина пісочниці Claude"
+          }
+        }
+      }
+    },
+    "Several gigabytes will be downloaded again on next use": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Several gigabytes will be downloaded again on next use"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кілька гігабайтів завантажаться знову при наступному використанні"
+          }
+        }
+      }
+    },
+    "Desktop app caches": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desktop app caches"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кеші настільних програм"
+          }
+        }
+      }
+    },
+    "Apps rebuild these; VS Code keeps its installed extensions": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apps rebuild these; VS Code keeps its installed extensions"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Програми створять їх заново; встановлені розширення VS Code лишаються"
+          }
+        }
+      }
+    },
+    "Downloaded models and runtimes": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded models and runtimes"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажені моделі та середовища виконання"
+          }
+        }
+      }
+    },
+    "Downloaded again on demand, which can take a while": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Downloaded again on demand, which can take a while"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Завантажаться знову за потреби, і це може бути довго"
+          }
+        }
+      }
+    },
+    "Application logs": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Application logs"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Логи програм"
+          }
+        }
+      }
+    },
+    "Only useful while diagnosing a problem": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only useful while diagnosing a problem"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Потрібні лише поки шукаєш причину проблеми"
           }
         }
       }
