@@ -109,10 +109,32 @@ you can neither delete something forbidden nor delete a directory that has
 something forbidden inside it. `Xcode/` cannot go because `Archives` lives
 there. On the list: `Documents`, `Desktop`, `Downloads`, iCloud Drive, Photos,
 Mail, Messages, Keychains, `~/.ssh`, device backups, `Xcode/Archives`,
-`Xcode/UserData`, and `~/Projects` — source code is never junk.
+`Xcode/UserData`, `~/.Trash`, and `~/Projects` — source code is never junk.
 
 Comparison is by path component rather than by string: a string prefix would
 read `CachesOther` as part of `Caches`.
+
+**Holds, not silent skips.** A finding stays visible but cannot be selected
+when removing it now would be a bad idea, and the row says which of the two
+reasons applies. `AppAttribution` reads the owning application out of the path
+itself — `Library/Containers/com.apple.Safari/…` names its owner, whereas
+`DerivedData/…` names nobody and is never attributed by guesswork — and holds
+it while that application runs. The second reason is cost: where a fresh
+timestamp means a large download was just paid for, the finding waits
+(`minimumIdleDays`). Cache categories carry no age rule on purpose, measured
+rather than assumed: a cache directory's timestamp moves whenever anything
+inside it is touched, so a blanket rule held back every finding and turned
+those categories off.
+
+**The Trash is not freed space.** Moving 20 GB there frees nothing until the
+Trash is emptied, so the report says exactly that and shows what the Trash
+holds. The app never empties it — that would be the one irreversible act this
+design exists to avoid. `~/.Trash` is on the never-touch list as well.
+
+**An unreadable folder is not an empty one.** Without Full Disk Access macOS
+hides directories, and a scan that counted them as empty would report a tidy
+Mac nobody looked at. `CategoryScan.unreadableRoots` keeps them apart and the
+window says the totals are a floor.
 
 **Revalidation before removal.** `Remover` does not trust the scan and puts
 every path through `PathGuard` again immediately before moving it: minutes pass

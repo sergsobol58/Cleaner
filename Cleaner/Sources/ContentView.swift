@@ -20,7 +20,11 @@ struct ContentView: View {
         Group {
             switch section {
             case .files:
-                content.safeAreaInset(edge: .bottom) { footer }
+                VStack(spacing: 0) {
+                    if model.isUnderReporting { PermissionBanner(model: model) }
+                    content
+                }
+                .safeAreaInset(edge: .bottom) { footer }
             case .simulators:
                 SimulatorsView(model: model)
             }
@@ -53,7 +57,10 @@ struct ContentView: View {
                 Text("Moving to the Trash…").foregroundStyle(.secondary)
             }
         case .finished:
-            ReportView(report: model.report) { Task { await model.scan() } }
+            ReportView(report: model.report,
+                       trashBytes: model.trashBytes,
+                       onOpenTrash: { model.openTrash() },
+                       onRescan: { Task { await model.scan() } })
         case .results:
             categoryList
         }
@@ -149,7 +156,7 @@ struct ContentView: View {
             Text("Total: \(model.selectedBytes.formattedBytes) · \(model.selectedItems.count.itemsText)")
                 .font(.callout)
 
-            Label("Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home.",
+            Label("Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home. The space itself is freed once you empty the Trash.",
                   systemImage: "arrow.uturn.backward")
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -215,13 +222,14 @@ private struct CategoryHeader: View {
                 Text(scan.category.title)
                 Group {
                     if scan.items.isEmpty {
-                        Text("Empty")
+                        Text(scan.unreadableRoots.isEmpty ? "Empty" : "Could not be read")
                     } else {
                         Text("\(scan.category.consequence) · \(scan.items.count.itemsText)")
                     }
                 }
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(scan.unreadableRoots.isEmpty ? AnyShapeStyle(.secondary)
+                                                              : AnyShapeStyle(.orange))
             }
             Spacer()
             Text(scan.totalBytes.formattedBytes)
@@ -271,21 +279,30 @@ private struct ItemRow: View {
                     .lineLimit(1)
                     .truncationMode(.middle)
                 Spacer()
-                Text(model.describe(item))
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
+                if let hold = item.hold {
+                    Text(hold.reason)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                } else {
+                    Text(model.describe(item))
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
                 Text(item.sizeBytes.formattedBytes)
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                     .frame(width: 76, alignment: .trailing)
             }
         }
+        .disabled(!item.isRemovable)
         .padding(.leading, indent)
     }
 }
 
 private struct ReportView: View {
     let report: RemovalReport?
+    let trashBytes: Int64
+    let onOpenTrash: () -> Void
     let onRescan: () -> Void
 
     var body: some View {
@@ -297,8 +314,22 @@ private struct ReportView: View {
                 .frame(width: 88, height: 88)
                 .glassEffect(.regular.tint(tint.opacity(0.18)), in: .circle)
 
-            Text("Moved \((report?.movedBytes ?? 0).formattedBytes)")
+            Text("Moved \((report?.movedBytes ?? 0).formattedBytes) to the Trash")
                 .font(.title3.bold())
+
+            // The number above is not freed space, and saying so is the
+            // difference between a report and a boast.
+            VStack(spacing: 6) {
+                Text("The space is freed once the Trash is emptied. It holds \(trashBytes.formattedBytes) now.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Button("Open the Trash", action: onOpenTrash)
+                    .buttonStyle(.link)
+            }
+            .frame(maxWidth: 380)
 
             if let failed = report?.failed, !failed.isEmpty {
                 Text("Failed: \(failed.count)")
@@ -319,8 +350,43 @@ private struct ReportView: View {
 
             Button("Scan again", action: onRescan)
                 .buttonStyle(.glass)
+                .padding(.top, 4)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
+
+/// Says out loud that the scan was partial.
+///
+/// An unreadable folder and an empty one look identical in a total, so
+/// without this the app would report a tidy Mac that nobody actually looked at.
+private struct PermissionBanner: View {
+    let model: CleanerModel
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "eye.trianglebadge.exclamationmark")
+                .foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("This scan is incomplete")
+                    .font(.callout.weight(.medium))
+                Text("Some folders refused to be read. Without Full Disk Access the totals below are a floor, not the whole picture.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            Button("Open Settings") { model.openFullDiskAccessSettings() }
+                .controlSize(.small)
+        }
+        .padding(12)
+        .background(.quaternary, in: .rect(cornerRadius: 10))
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
     }
 }

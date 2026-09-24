@@ -31,6 +31,25 @@ final class CatalogTests: XCTestCase {
                        "the workspaces directory itself must never be a root")
     }
 
+    /// Measured, not assumed: a cache directory's timestamp moves whenever
+    /// anything inside it is touched, so a blanket age rule held back every
+    /// finding in these categories and quietly turned them off.
+    func testCacheCategoriesCarryNoAgeRule() {
+        let byID = Dictionary(uniqueKeysWithValues: categories().map { ($0.id, $0) })
+        for id in ["packageCaches", "swiftPM", "appCaches", "desktopAppCaches", "logs"] {
+            XCTAssertEqual(byID[id]?.minimumIdleDays, 0,
+                           "\(id) must rely on the running-app check, not on a timestamp")
+        }
+    }
+
+    /// Where a fresh timestamp means the user just paid for a large download,
+    /// throwing it away the same day is rarely what they meant.
+    func testExpensiveCategoriesWaitBeforeOffering() {
+        let byID = Dictionary(uniqueKeysWithValues: categories().map { ($0.id, $0) })
+        XCTAssertEqual(byID["modelCaches"]?.minimumIdleDays, 7)
+        XCTAssertEqual(byID["agentVM"]?.minimumIdleDays, 7)
+    }
+
     func testUpdaterCategoryTakesOnlyShipItDirectories() {
         let caches = home.appendingPathComponent("Library/Caches")
         let found = Catalog.standard(home: home, listing: { _ in [

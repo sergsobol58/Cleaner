@@ -25,7 +25,8 @@ final class ScannerTests: XCTestCase {
     }
 
     private func makeScanner() -> DiskScanner {
-        DiskScanner(pathGuard: PathGuard(allowedRoots: [root], deniedPaths: []))
+        DiskScanner(pathGuard: PathGuard(allowedRoots: [root], deniedPaths: []),
+                    policy: ScanPolicy(home: root))
     }
 
     private func category(_ roots: [URL]) -> CleanupCategory {

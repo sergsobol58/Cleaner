@@ -206,23 +206,6 @@
         }
       }
     },
-    "Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home.": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Нічого не стирається назавжди: файли підуть до Кошика, а кнопка «Повернути» у Finder поверне їх на місце."
-          }
-        }
-      }
-    },
     "Cancel": {
       "extractionState": "manual",
       "localizations": {
@@ -253,23 +236,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "Перемістити"
-          }
-        }
-      }
-    },
-    "Moved %@": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Moved %@"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Переміщено %@"
           }
         }
       }
@@ -1008,6 +974,142 @@
           "stringUnit": {
             "state": "translated",
             "value": "Іконка в Dock зникне, застосунок лишиться в меню-барі."
+          }
+        }
+      }
+    },
+    "Moved %@ to the Trash": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Moved %@ to the Trash"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переміщено %@ до Кошика"
+          }
+        }
+      }
+    },
+    "The space is freed once the Trash is emptied. It holds %@ now.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The space is freed once the Trash is emptied. It holds %@ now."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Місце звільниться, коли ви очистите Кошик. Зараз у ньому %@."
+          }
+        }
+      }
+    },
+    "Open the Trash": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open the Trash"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкрити Кошик"
+          }
+        }
+      }
+    },
+    "This scan is incomplete": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This scan is incomplete"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Це сканування неповне"
+          }
+        }
+      }
+    },
+    "Some folders refused to be read. Without Full Disk Access the totals below are a floor, not the whole picture.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some folders refused to be read. Without Full Disk Access the totals below are a floor, not the whole picture."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Деякі теки не дали себе прочитати. Без повного доступу до диска числа нижче — це мінімум, а не вся картина."
+          }
+        }
+      }
+    },
+    "Open Settings": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Settings"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкрити Налаштування"
+          }
+        }
+      }
+    },
+    "Could not be read": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Could not be read"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Не вдалося прочитати"
+          }
+        }
+      }
+    },
+    "Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home. The space itself is freed once you empty the Trash.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home. The space itself is freed once you empty the Trash."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нічого не стирається назавжди: файли йдуть до Кошика, а «Повернути» у Finder вертає їх на місце. Саме місце звільниться, коли ви очистите Кошик."
           }
         }
       }

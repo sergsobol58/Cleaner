@@ -7,12 +7,27 @@ public struct CleanupCategory: Identifiable, Sendable, Equatable {
     /// What happens after deletion. The user is entitled to know beforehand.
     public let consequence: String
     public let roots: [URL]
+    /// How long a finding must sit untouched before it is offered.
+    ///
+    /// Not a guard against deleting something in use — a running application
+    /// is detected directly, which is both more precise and more useful to
+    /// read. This is about cost: where a fresh timestamp means the user just
+    /// paid to download or build something large, throwing it away the same
+    /// day is rarely what they meant.
+    ///
+    /// Zero everywhere else, and deliberately so. A cache directory's
+    /// timestamp moves whenever anything inside it is touched, so a blanket
+    /// rule here holds back nearly everything and quietly turns a category
+    /// off — measured, not guessed.
+    public let minimumIdleDays: Int
 
-    public init(id: String, title: String, consequence: String, roots: [URL]) {
+    public init(id: String, title: String, consequence: String, roots: [URL],
+                minimumIdleDays: Int = 0) {
         self.id = id
         self.title = title
         self.consequence = consequence
         self.roots = roots
+        self.minimumIdleDays = minimumIdleDays
     }
 }
 
@@ -43,7 +58,8 @@ public enum Catalog {
                     home.appending(path: "Library/Developer/Xcode/iOS DeviceSupport"),
                     home.appending(path: "Library/Developer/Xcode/watchOS DeviceSupport"),
                     home.appending(path: "Library/Developer/Xcode/tvOS DeviceSupport"),
-                ]
+                ],
+                minimumIdleDays: 1
             ),
             CleanupCategory(
                 id: "packageCaches",
@@ -99,7 +115,8 @@ public enum Catalog {
                 id: "agentVM",
                 title: kitString("Claude sandbox virtual machine"),
                 consequence: kitString("Several gigabytes will be downloaded again on next use"),
-                roots: [home.appending(path: "Library/Application Support/Claude/vm_bundles")]
+                roots: [home.appending(path: "Library/Application Support/Claude/vm_bundles")],
+                minimumIdleDays: 7
             ),
             CleanupCategory(
                 id: "desktopAppCaches",
@@ -118,7 +135,8 @@ public enum Catalog {
                     home.appending(path: ".cache/huggingface"),
                     home.appending(path: ".cache/codex-runtimes"),
                     home.appending(path: ".cache/uv"),
-                ]
+                ],
+                minimumIdleDays: 7
             ),
             CleanupCategory(
                 id: "logs",
@@ -131,7 +149,8 @@ public enum Catalog {
                 title: kitString("Downloaded application updates"),
                 consequence: kitString("Installers for updates already applied; downloaded again if needed"),
                 roots: listing(home.appending(path: "Library/Caches"))
-                    .filter { $0.lastPathComponent.hasSuffix(".ShipIt") }
+                    .filter { $0.lastPathComponent.hasSuffix(".ShipIt") },
+                minimumIdleDays: 1
             ),
         ]
     }
@@ -162,6 +181,7 @@ public enum Catalog {
             "Library/Developer/Xcode/Archives",        // shipped releases
             "Library/Developer/Xcode/UserData",        // schemes, snippets, breakpoints
             ".ssh",
+            ".Trash",                                  // what we already moved
         ].map { home.appending(path: $0) }
     }
 

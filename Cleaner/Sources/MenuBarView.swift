@@ -164,7 +164,7 @@ struct MenuBarView: View {
             Text("Total: \(model.selectedBytes.formattedBytes) · \(model.selectedItems.count.itemsText)")
                 .font(.callout.bold())
 
-            Text("Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home.")
+            Text("Nothing is erased for good: the files go to the Trash, and Finder's Put Back brings them home. The space itself is freed once you empty the Trash.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)

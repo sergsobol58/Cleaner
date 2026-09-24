@@ -1,3 +1,4 @@
+import AppKit
 import CleanerKit
 import Foundation
 import Observation
@@ -31,6 +32,17 @@ final class CleanerModel {
     var isConfirmingSimulators = false
     var acknowledgedIrreversible = false
 
+    // MARK: What the Trash and the permissions say
+
+    /// What sits in the Trash right now. Moving files there frees nothing
+    /// until it is emptied, and the app says so rather than implying otherwise.
+    private(set) var trashBytes: Int64 = 0
+    private(set) var hasFullDiskAccess = true
+
+    /// Roots that exist but refused to be read. Not the same as empty.
+    var unreadableRoots: [URL] { scans.flatMap(\.unreadableRoots) }
+    var isUnderReporting: Bool { !hasFullDiskAccess || !unreadableRoots.isEmpty }
+
     private let home = FileManager.default.homeDirectoryForCurrentUser
     private var pathGuard: PathGuard { Catalog.pathGuard(home: home) }
 
@@ -57,10 +69,12 @@ final class CleanerModel {
         phase = .scanning
         report = nil
 
-        let scanner = DiskScanner(pathGuard: pathGuard)
+        let policy = ScanPolicy(home: home, runningApps: SystemRunningApps.current())
+        let scanner = DiskScanner(pathGuard: pathGuard, policy: policy)
         scans = await scanner.scan(Catalog.standard(home: home))
         selection.keepOnly(scans)
         lastScan = .now
+        await refreshEnvironment()
 
         phase = .results
     }
@@ -84,8 +98,29 @@ final class CleanerModel {
 
         let remover = Remover(pathGuard: pathGuard, trash: SystemTrash())
         report = await remover.remove(selectedItems)
+        await refreshEnvironment()
 
         phase = .finished
+    }
+
+    /// Reading the Trash walks a directory tree, so it stays off the main
+    /// actor even though the numbers it produces land there.
+    private func refreshEnvironment() async {
+        let home = home
+        let measured = await Task.detached {
+            (trash: TrashFolder.sizeBytes(home: home),
+             access: FullDiskAccess.isGranted(home: home))
+        }.value
+        trashBytes = measured.trash
+        hasFullDiskAccess = measured.access
+    }
+
+    func openTrash() {
+        NSWorkspace.shared.open(TrashFolder.url(home: home))
+    }
+
+    func openFullDiskAccessSettings() {
+        NSWorkspace.shared.open(FullDiskAccess.settingsURL)
     }
 
     // MARK: Simulators

@@ -545,6 +545,40 @@
           }
         }
       }
+    },
+    "%@ is running": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ is running"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ зараз запущено"
+          }
+        }
+      }
+    },
+    "changed recently": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "changed recently"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "змінено щойно"
+          }
+        }
+      }
     }
   }
 }

@@ -46,6 +46,13 @@ public struct Remover: Sendable {
         var failed: [RemovalOutcome] = []
 
         for item in items {
+            // Second line of defence. The selection already refuses held
+            // findings; a caller assembling a list by hand does not.
+            if let hold = item.hold {
+                failed.append(RemovalOutcome(item: item, error: hold.reason))
+                continue
+            }
+
             // Scan results are not trusted: the path is checked again, now.
             if case .failure(let rejection) = pathGuard.validate(item.url) {
                 failed.append(RemovalOutcome(item: item, error: Self.describe(rejection)))
