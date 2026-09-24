@@ -18,9 +18,8 @@ struct SimulatorsView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            Divider()
-            footer
         }
+        .safeAreaInset(edge: .bottom) { footer }
         .task { if !model.simulatorsLoaded { await model.loadSimulators() } }
         .sheet(isPresented: $model.isConfirmingSimulators) { confirmation }
     }
@@ -95,7 +94,7 @@ struct SimulatorsView: View {
     }
 
     private var footer: some View {
-        HStack {
+        ActionBar {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.selectedSimulatorBytes > 0
                      ? "Selected \(model.selectedSimulatorBytes.formattedBytes)"
@@ -120,7 +119,6 @@ struct SimulatorsView: View {
             }
             .disabled(model.selectedSimulatorBytes == 0)
         }
-        .padding(12)
     }
 
     private var confirmation: some View {

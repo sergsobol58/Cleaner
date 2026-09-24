@@ -17,28 +17,24 @@ struct ContentView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("", selection: $section) {
-                ForEach(Section.allCases, id: \.self) { Text($0.title).tag($0) }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .padding(10)
-
-            Divider()
-
+        Group {
             switch section {
             case .files:
-                VStack(spacing: 0) {
-                    content
-                    Divider()
-                    footer
-                }
+                content.safeAreaInset(edge: .bottom) { footer }
             case .simulators:
                 SimulatorsView(model: model)
             }
         }
-        .frame(minWidth: 560, minHeight: 440)
+        .frame(minWidth: 620, minHeight: 440)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Picker("", selection: $section) {
+                    ForEach(Section.allCases, id: \.self) { Text($0.title).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            }
+        }
         .task { await model.scanIfNeeded() }
         .sheet(isPresented: $model.isConfirming) { confirmation }
     }
@@ -105,7 +101,7 @@ struct ContentView: View {
     }
 
     private var footer: some View {
-        HStack {
+        ActionBar {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.selectedBytes > 0
                      ? "Selected \(model.selectedBytes.formattedBytes) · \(model.selectedItems.count.itemsText)"
@@ -129,7 +125,6 @@ struct ContentView: View {
             .keyboardShortcut(.defaultAction)
             .disabled(!model.canRemove)
         }
-        .padding(12)
     }
 
     private var confirmation: some View {
@@ -295,9 +290,12 @@ private struct ReportView: View {
 
     var body: some View {
         VStack(spacing: 12) {
+            let tint: Color = report?.isClean == true ? .green : .orange
             Image(systemName: report?.isClean == true ? "checkmark.circle" : "exclamationmark.triangle")
-                .font(.system(size: 40))
-                .foregroundStyle(report?.isClean == true ? .green : .orange)
+                .font(.system(size: 34))
+                .foregroundStyle(tint)
+                .frame(width: 88, height: 88)
+                .glassEffect(.regular.tint(tint.opacity(0.18)), in: .circle)
 
             Text("Moved \((report?.movedBytes ?? 0).formattedBytes)")
                 .font(.title3.bold())
@@ -320,6 +318,7 @@ private struct ReportView: View {
             }
 
             Button("Scan again", action: onRescan)
+                .buttonStyle(.glass)
         }
         .padding(24)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
