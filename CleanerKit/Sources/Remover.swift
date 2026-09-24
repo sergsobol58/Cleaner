@@ -33,10 +33,12 @@ public struct RemovalReport: Sendable {
 public struct Remover: Sendable {
     private let pathGuard: PathGuard
     private let trash: FileTrashing
+    private let policy: ScanPolicy
 
-    public init(pathGuard: PathGuard, trash: FileTrashing) {
+    public init(pathGuard: PathGuard, trash: FileTrashing, policy: ScanPolicy) {
         self.pathGuard = pathGuard
         self.trash = trash
+        self.policy = policy
     }
 
     /// Sequential rather than parallel: speed is not the prize here,
@@ -50,6 +52,16 @@ public struct Remover: Sendable {
             // findings; a caller assembling a list by hand does not.
             if let hold = item.hold {
                 failed.append(RemovalOutcome(item: item, error: hold.reason))
+                continue
+            }
+
+            // Naming a whole application directory as a leftover widens what
+            // the guard permits, so the rule that picked it is re-run here on
+            // the state of the disk right now, not the state at scan time.
+            if item.selects == .orphanedApplications, !isStillOrphaned(item) {
+                failed.append(RemovalOutcome(
+                    item: item,
+                    error: kitString("an installed application claims this again")))
                 continue
             }
 
@@ -68,6 +80,13 @@ public struct Remover: Sendable {
         }
 
         return RemovalReport(moved: moved, failed: failed)
+    }
+
+    private func isStillOrphaned(_ item: ScanItem) -> Bool {
+        let modified = (try? item.url.resourceValues(forKeys: [.contentModificationDateKey]))?
+            .contentModificationDate ?? item.modified
+        return Leftovers.isOrphan(name: item.url.lastPathComponent, modified: modified,
+                                  now: .now, installed: policy.installed)
     }
 
     private static func describe(_ rejection: GuardRejection) -> String {

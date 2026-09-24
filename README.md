@@ -114,6 +114,33 @@ Mail, Messages, Keychains, `~/.ssh`, device backups, `Xcode/Archives`,
 Comparison is by path component rather than by string: a string prefix would
 read `CachesOther` as part of `Caches`.
 
+**Leftovers are judged by identifier, never by name.** Only directories macOS
+names after a bundle identifier are ever considered — `Containers`,
+`Group Containers`, `HTTPStorages`, `Saved Application State` and the
+identifier-shaped folders in `Application Support`. A folder called `Notion`
+is never judged, because there is nothing to check it against, and guessing
+from an application's name is how a cleaner deletes the data of software you
+still use.
+
+Matching runs both ways against every installed bundle identifier plus
+LaunchServices: a group container named `dev.warp` belongs to an application
+that answers to `dev.warp.Warp-Stable`, and an extension named
+`notion.id.NotionSafariExtension` belongs to `notion.id`. Checking one way
+called both of them abandoned while their application sat in the Dock —
+measured, then fixed. On top of that a finding must have sat untouched for
+180 days: below that the list filled with live command line tools and helpers
+that simply have no application bundle for the system to find.
+
+If the system cannot even resolve Finder, every other answer is worthless
+too, so the lookup claims everything and reports nothing. Naming a whole
+application directory widens what `PathGuard` permits, so `Remover` re-runs
+the rule against the state of the disk at the moment of removal, not the
+state at scan time.
+
+This one is about tidiness rather than space: on the machine it was written
+on it finds about 32 MB across a hundred directories, most of them empty
+shells. It is listed last for that reason.
+
 **Found by name, not by a list of applications.** Chromium and Electron give
 their caches the same handful of directory names, so the catalog searches
 `Application Support` for those names four levels down instead of naming
@@ -195,6 +222,7 @@ the name `content-v2` says nothing on its own, but under the heading
 | Caches of sandboxed applications | `Containers/*/Data/Library/Caches` | Rebuilt on next launch |
 | Downloaded models and runtimes | `~/.cache/huggingface`, `codex-runtimes`, `uv` | Downloaded again on demand |
 | Application logs | `~/Library/Logs` | Only useful while diagnosing |
+| Left behind by removed applications | Identifier-named folders no installed application answers to, untouched 180 days | Settings of software you removed |
 | Downloaded updates | `*.ShipIt` directories in `~/Library/Caches` | Downloaded again if needed |
 
 The `*.ShipIt` list is derived from what the directory actually contains rather

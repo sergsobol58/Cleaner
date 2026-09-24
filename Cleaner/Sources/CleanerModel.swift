@@ -105,12 +105,16 @@ final class CleanerModel {
         scanProgress = nil
         wasStopped = false
 
-        let policy = ScanPolicy(home: home, runningApps: SystemRunningApps.current())
+        let installed = SystemApplications.installed()
+        let policy = ScanPolicy(home: home, runningApps: SystemRunningApps.current(),
+                                installed: installed)
         let scanner = DiskScanner(pathGuard: pathGuard, policy: policy)
         // Building the catalog now walks the disk looking for cache
         // directories, which is not work for the main actor.
         let home = home
-        let categories = await Task.detached { Catalog.standard(home: home) }.value
+        let categories = await Task.detached {
+            Catalog.standard(home: home, installed: installed)
+        }.value
         let fresh = await scanner.scan(categories) { [weak self] progress in
             Task { @MainActor in self?.report(progress) }
         }
@@ -157,7 +161,9 @@ final class CleanerModel {
     func removeSelected() async {
         phase = .removing
 
-        let remover = Remover(pathGuard: pathGuard, trash: SystemTrash())
+        let remover = Remover(pathGuard: pathGuard, trash: SystemTrash(),
+                              policy: ScanPolicy(home: home,
+                                                 installed: SystemApplications.installed()))
         report = await remover.remove(selectedItems)
         await refreshEnvironment()
 

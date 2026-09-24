@@ -1,5 +1,14 @@
 import Foundation
 
+/// Which children of a root a category takes.
+public enum ChildSelection: Sendable, Equatable {
+    case everything
+    /// Only children named after a bundle identifier no installed
+    /// application answers to, and untouched long enough for that to mean
+    /// something.
+    case orphanedApplications
+}
+
 /// A junk category: what gets cleaned and what that costs.
 public struct CleanupCategory: Identifiable, Sendable, Equatable {
     public let id: String
@@ -20,14 +29,16 @@ public struct CleanupCategory: Identifiable, Sendable, Equatable {
     /// rule here holds back nearly everything and quietly turns a category
     /// off — measured, not guessed.
     public let minimumIdleDays: Int
+    public let selects: ChildSelection
 
     public init(id: String, title: String, consequence: String, roots: [URL],
-                minimumIdleDays: Int = 0) {
+                minimumIdleDays: Int = 0, selects: ChildSelection = .everything) {
         self.id = id
         self.title = title
         self.consequence = consequence
         self.roots = roots
         self.minimumIdleDays = minimumIdleDays
+        self.selects = selects
     }
 }
 
@@ -41,7 +52,8 @@ public enum Catalog {
     /// happens to be on someone's machine.
     public static func standard(
         home: URL,
-        listing: (URL) -> [URL] = Catalog.contentsOfDirectory
+        listing: (URL) -> [URL] = Catalog.contentsOfDirectory,
+        installed: InstalledApplications = .everything
     ) -> [CleanupCategory] {
         [
             CleanupCategory(
@@ -125,9 +137,10 @@ public enum Catalog {
                 id: "desktopAppCaches",
                 title: kitString("Caches inside application data"),
                 consequence: kitString("Applications rebuild these; settings and documents stay"),
-                roots: find(named: chromiumCacheNames,
-                            under: home.appending(path: "Library/Application Support"),
-                            depth: 4, listing: listing)
+                roots: listing(home.appending(path: "Library/Application Support"))
+                    .filter { claimed($0, by: installed) }
+                    .flatMap { find(named: chromiumCacheNames, under: $0,
+                                    depth: 3, listing: listing) }
                     + ["Code/CachedExtensionVSIXs", "Code/CachedData"]
                         .map { home.appending(path: "Library/Application Support/\($0)") }
             ),
@@ -136,6 +149,7 @@ public enum Catalog {
                 title: kitString("Caches of sandboxed applications"),
                 consequence: kitString("Applications rebuild these on next launch"),
                 roots: listing(home.appending(path: "Library/Containers"))
+                    .filter { claimed($0, by: installed) }
                     .map { $0.appending(path: "Data/Library/Caches") }
             ),
             CleanupCategory(
@@ -155,6 +169,22 @@ public enum Catalog {
                 consequence: kitString("Only useful while diagnosing a problem"),
                 roots: [home.appending(path: "Library/Logs")]
             ),
+            // Only directories macOS names by bundle identifier: a folder
+            // called "Notion" cannot be checked against anything, and
+            // guessing from an application's name is how a cleaner deletes
+            // the data of software you still use. The cache search skips the
+            // same abandoned folders, so nothing is counted twice.
+            CleanupCategory(
+                id: "leftovers",
+                title: kitString("Left behind by removed applications"),
+                consequence: kitString("Settings and data of applications the system can no longer find"),
+                roots: [
+                    "Library/Containers", "Library/Group Containers",
+                    "Library/Application Support", "Library/HTTPStorages",
+                    "Library/Saved Application State",
+                ].map { home.appending(path: $0) },
+                selects: .orphanedApplications
+            ),
             CleanupCategory(
                 id: "appUpdaters",
                 title: kitString("Downloaded application updates"),
@@ -164,6 +194,11 @@ public enum Catalog {
                 minimumIdleDays: 1
             ),
         ]
+    }
+
+    static func claimed(_ url: URL, by installed: InstalledApplications) -> Bool {
+        guard let id = Leftovers.identifier(in: url.lastPathComponent) else { return true }
+        return installed.claims(id)
     }
 
     /// Directory names Chromium and Electron give their caches. Every desktop

@@ -14,7 +14,8 @@ final class CatalogTests: XCTestCase {
                        ["derivedData", "deviceSupport", "packageCaches",
                         "xcodeBuildMCP", "swiftPM", "appCaches",
                         "agentBuilds", "agentVM", "desktopAppCaches",
-                        "sandboxedAppCaches", "modelCaches", "logs", "appUpdaters"])
+                        "sandboxedAppCaches", "modelCaches", "logs",
+                        "leftovers", "appUpdaters"])
     }
 
     /// The whole workspace must not be a root: wiping it during a build in

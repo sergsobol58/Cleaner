@@ -48,7 +48,8 @@ final class RemoverTests: XCTestCase {
     }
 
     private func makeRemover(_ spy: TrashSpy, denied: [URL] = []) -> Remover {
-        Remover(pathGuard: PathGuard(allowedRoots: [root], deniedPaths: denied), trash: spy)
+        Remover(pathGuard: PathGuard(allowedRoots: [root], deniedPaths: denied), trash: spy,
+                policy: ScanPolicy(home: root))
     }
 
     func testMovesValidItems() async throws {

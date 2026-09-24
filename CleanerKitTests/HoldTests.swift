@@ -176,7 +176,7 @@ final class HoldEnforcementTests: XCTestCase {
     func testRemoverRefusesAHeldFindingHandedToItDirectly() async {
         let held = item("held", hold: .appRunning("Notion"))
         let remover = Remover(pathGuard: PathGuard(allowedRoots: [root], deniedPaths: []),
-                              trash: RecordingTrash())
+                              trash: RecordingTrash(), policy: ScanPolicy(home: root))
         let report = await remover.remove([held])
 
         XCTAssertTrue(report.moved.isEmpty)

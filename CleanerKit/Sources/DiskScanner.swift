@@ -11,15 +11,20 @@ public struct ScanItem: Identifiable, Sendable, Equatable, Hashable {
     public let root: URL
     /// Set when the finding must not be removed right now.
     public let hold: Hold?
+    /// The rule this finding was picked by, carried so removal can check it
+    /// again rather than trusting a scan that may be minutes old.
+    public let selects: ChildSelection
 
     public var isRemovable: Bool { hold == nil }
 
-    public init(url: URL, sizeBytes: Int64, modified: Date, root: URL, hold: Hold? = nil) {
+    public init(url: URL, sizeBytes: Int64, modified: Date, root: URL, hold: Hold? = nil,
+                selects: ChildSelection = .everything) {
         self.id = url
         self.sizeBytes = sizeBytes
         self.modified = modified
         self.root = root
         self.hold = hold
+        self.selects = selects
     }
 }
 
@@ -72,11 +77,16 @@ public struct ScanPolicy: Sendable {
     public let home: URL
     public let runningApps: [RunningApp]
     public let now: Date
+    /// Claims everything by default: a missing wiring must not turn every
+    /// folder into a supposed leftover.
+    public let installed: InstalledApplications
 
-    public init(home: URL, runningApps: [RunningApp] = [], now: Date = .now) {
+    public init(home: URL, runningApps: [RunningApp] = [], now: Date = .now,
+                installed: InstalledApplications = .everything) {
         self.home = home
         self.runningApps = runningApps
         self.now = now
+        self.installed = installed
     }
 }
 
@@ -179,9 +189,22 @@ public struct DiskScanner: Sendable {
         let modified = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?
             .contentModificationDate ?? .distantPast
 
+        guard accepts(url, modified: modified, in: category) else { return nil }
+
         return ScanItem(url: url, sizeBytes: CleanerKit.allocatedSize(of: url),
                         modified: modified, root: root,
-                        hold: hold(for: url, modified: modified, in: category))
+                        hold: hold(for: url, modified: modified, in: category),
+                        selects: category.selects)
+    }
+
+    private func accepts(_ url: URL, modified: Date, in category: CleanupCategory) -> Bool {
+        switch category.selects {
+        case .everything:
+            true
+        case .orphanedApplications:
+            Leftovers.isOrphan(name: url.lastPathComponent, modified: modified,
+                               now: policy.now, installed: policy.installed)
+        }
     }
 
     /// A running application outranks the age rule: it is the more specific

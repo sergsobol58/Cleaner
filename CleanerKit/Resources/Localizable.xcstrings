@@ -613,6 +613,57 @@
           }
         }
       }
+    },
+    "Left behind by removed applications": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left behind by removed applications"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Залишки видалених програм"
+          }
+        }
+      }
+    },
+    "Settings and data of applications the system can no longer find": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Settings and data of applications the system can no longer find"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Налаштування й дані програм, яких система вже не знаходить"
+          }
+        }
+      }
+    },
+    "an installed application claims this again": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "an installed application claims this again"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "цю теку знову заявляє встановлена програма"
+          }
+        }
+      }
     }
   }
 }
