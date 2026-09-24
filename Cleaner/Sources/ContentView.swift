@@ -46,10 +46,37 @@ struct ContentView: View {
     @ViewBuilder
     private var content: some View {
         switch model.phase {
+        case .idle where model.wasStopped:
+            centered {
+                Image(systemName: "stop.circle")
+                    .font(.system(size: 30))
+                    .foregroundStyle(.secondary)
+                Text("Scan stopped").font(.headline)
+                Text("Nothing was measured, so there is nothing to show yet.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Scan again") { Task { await model.scan() } }
+                    .buttonStyle(.glass)
+                    .padding(.top, 4)
+            }
         case .idle, .scanning:
             centered {
-                ProgressView()
-                Text("Looking for space to reclaim…").foregroundStyle(.secondary)
+                if let progress = model.scanProgress {
+                    ProgressView(value: progress.fraction)
+                        .progressViewStyle(.linear)
+                        .frame(width: 260)
+                    Text("Looking for space to reclaim…").foregroundStyle(.secondary)
+                    Text(progress.finished)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                } else {
+                    ProgressView()
+                    Text("Looking for space to reclaim…").foregroundStyle(.secondary)
+                }
+                Button("Stop") { model.cancelScan() }
+                    .buttonStyle(.glass)
+                    .padding(.top, 4)
             }
         case .removing:
             centered {
@@ -114,7 +141,7 @@ struct ContentView: View {
                      ? "Selected \(model.selectedBytes.formattedBytes) · \(model.selectedItems.count.itemsText)"
                      : "Nothing selected")
                     .font(.headline)
-                Text("Found \(model.foundBytes.formattedBytes)")
+                Text(model.summaryLine)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -261,6 +288,7 @@ private struct GroupRow: View {
         }
         .padding(.leading, 12)
         .padding(.vertical, 2)
+        .contextMenu { PathActions(url: group.root, model: model) }
     }
 }
 
@@ -296,6 +324,7 @@ private struct ItemRow: View {
         }
         .disabled(!item.isRemovable)
         .padding(.leading, indent)
+        .contextMenu { PathActions(url: item.url, model: model) }
     }
 }
 
@@ -388,5 +417,18 @@ private struct PermissionBanner: View {
         .background(.quaternary, in: .rect(cornerRadius: 10))
         .padding(.horizontal, 12)
         .padding(.top, 10)
+    }
+}
+
+
+/// Checking before deleting should not require leaving the app to find out
+/// what a name like "content-v2" actually is.
+private struct PathActions: View {
+    let url: URL
+    let model: CleanerModel
+
+    var body: some View {
+        Button("Show in Finder") { model.reveal(url) }
+        Button("Copy path") { model.copyPath(url) }
     }
 }

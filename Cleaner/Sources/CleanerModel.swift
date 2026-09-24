@@ -38,6 +38,14 @@ final class CleanerModel {
     /// until it is emptied, and the app says so rather than implying otherwise.
     private(set) var trashBytes: Int64 = 0
     private(set) var hasFullDiskAccess = true
+    private(set) var volume: VolumeSpace?
+
+    /// How far the running scan has got, and nil when none is running.
+    private(set) var scanProgress: ScanProgress?
+    /// Set when the user stopped a scan that had nothing to fall back on.
+    /// Without it the window would sit on a spinner that never resolves.
+    private(set) var wasStopped = false
+    private var scanTask: Task<Void, Never>?
 
     /// Roots that exist but refused to be read. Not the same as empty.
     var unreadableRoots: [URL] { scans.flatMap(\.unreadableRoots) }
@@ -63,20 +71,69 @@ final class CleanerModel {
     }
 
     var foundBytes: Int64 { scans.reduce(0) { $0 + $1.totalBytes } }
+
+    /// Found, next to what the disk actually has. Purgeable space is named
+    /// only when there is enough of it to explain a confusing free figure.
+    var summaryLine: String {
+        let found = String(localized: "Found \(foundBytes.formattedBytes)")
+        guard let volume else { return found }
+
+        let room = String(localized: "\(volume.free.formattedBytes) free of \(volume.total.formattedBytes)")
+        guard volume.purgeable > 1_073_741_824 else { return "\(found) · \(room)" }
+
+        let purgeable = String(localized: "\(volume.purgeable.formattedBytes) purgeable")
+        return "\(found) · \(room) · \(purgeable)"
+    }
     var canRemove: Bool { phase == .results && !selectedItems.isEmpty }
 
     func scan() async {
+        scanTask?.cancel()
+        let task = Task { await runScan() }
+        scanTask = task
+        await task.value
+    }
+
+    /// Stops the scan without discarding what the previous one found: an
+    /// empty window would punish the user for changing their mind.
+    func cancelScan() {
+        scanTask?.cancel()
+    }
+
+    private func runScan() async {
         phase = .scanning
         report = nil
+        scanProgress = nil
+        wasStopped = false
 
         let policy = ScanPolicy(home: home, runningApps: SystemRunningApps.current())
         let scanner = DiskScanner(pathGuard: pathGuard, policy: policy)
-        scans = await scanner.scan(Catalog.standard(home: home))
+        let fresh = await scanner.scan(Catalog.standard(home: home)) { [weak self] progress in
+            Task { @MainActor in self?.report(progress) }
+        }
+
+        guard !Task.isCancelled else {
+            scanProgress = nil
+            wasStopped = scans.isEmpty
+            phase = scans.isEmpty ? .idle : .results
+            return
+        }
+
+        // Biggest first: the reason to open this app is the top of the list.
+        scans = fresh.sorted { $0.totalBytes > $1.totalBytes }
         selection.keepOnly(scans)
         lastScan = .now
+        scanProgress = nil
         await refreshEnvironment()
 
         phase = .results
+    }
+
+    /// Progress arrives from parallel tasks, so a late report can land after
+    /// an earlier one. Only forward movement is shown.
+    private func report(_ progress: ScanProgress) {
+        guard phase == .scanning else { return }
+        guard progress.completed > (scanProgress?.completed ?? 0) else { return }
+        scanProgress = progress
     }
 
     /// The window and the menu bar panel both want fresh numbers on first
@@ -109,10 +166,21 @@ final class CleanerModel {
         let home = home
         let measured = await Task.detached {
             (trash: TrashFolder.sizeBytes(home: home),
-             access: FullDiskAccess.isGranted(home: home))
+             access: FullDiskAccess.isGranted(home: home),
+             volume: DiskSpace.volume(at: home))
         }.value
         trashBytes = measured.trash
         hasFullDiskAccess = measured.access
+        volume = measured.volume
+    }
+
+    func reveal(_ url: URL) {
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
+    func copyPath(_ url: URL) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(url.path, forType: .string)
     }
 
     func openTrash() {

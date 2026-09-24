@@ -114,6 +114,21 @@ Mail, Messages, Keychains, `~/.ssh`, device backups, `Xcode/Archives`,
 Comparison is by path component rather than by string: a string prefix would
 read `CachesOther` as part of `Caches`.
 
+**A scan can be stopped.** Measuring `DerivedData` walks a lot of files, so
+progress is reported per category and `allocatedSize` checks for cancellation
+as it walks — a scan the user is still waiting on is not a cancelled one.
+Stopping keeps whatever the previous scan found rather than emptying the
+window, and stopping the very first scan lands on a state that says so
+instead of a spinner that never resolves.
+
+**Biggest first.** Categories are ordered by size rather than by catalog
+order: the reason to open this app is at the top of the list. Marks survive a
+rescan, so refreshing the numbers does not undo what was ticked.
+
+**Found, next to what the disk has.** The footer names free and total space,
+and the purgeable figure when there is over a gigabyte of it — that gap is
+what explains a Mac reporting little free room and then finding some.
+
 **Holds, not silent skips.** A finding stays visible but cannot be selected
 when removing it now would be a bad idea, and the row says which of the two
 reasons applies. `AppAttribution` reads the owning application out of the path

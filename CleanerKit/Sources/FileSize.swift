@@ -15,6 +15,9 @@ public func allocatedSize(of url: URL) -> Int64 {
 
     var total: Int64 = 0
     for case let child as URL in walker {
+        // Walking DerivedData can take a while, and a cancelled scan the user
+        // is still waiting on is not a cancelled scan.
+        if Task.isCancelled { return total }
         total += Int64((try? child.resourceValues(forKeys: keys))?.totalFileAllocatedSize ?? 0)
     }
     return total

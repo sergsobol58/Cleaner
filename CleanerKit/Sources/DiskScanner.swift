@@ -80,6 +80,25 @@ public struct ScanPolicy: Sendable {
     }
 }
 
+/// How far a scan has got.
+public struct ScanProgress: Sendable, Equatable {
+    public let completed: Int
+    public let total: Int
+    /// The category that just finished, so the progress bar has something to
+    /// say beyond a moving rectangle.
+    public let finished: String
+
+    public init(completed: Int, total: Int, finished: String) {
+        self.completed = completed
+        self.total = total
+        self.finished = finished
+    }
+
+    public var fraction: Double {
+        total == 0 ? 1 : Double(completed) / Double(total)
+    }
+}
+
 /// Inspection of categories. Read-only: changes and deletes nothing.
 public struct DiskScanner: Sendable {
     private let pathGuard: PathGuard
@@ -90,13 +109,23 @@ public struct DiskScanner: Sendable {
         self.policy = policy
     }
 
-    public func scan(_ categories: [CleanupCategory]) async -> [CategoryScan] {
+    /// Categories are measured in parallel, so progress is reported as each
+    /// one lands rather than in catalog order.
+    public func scan(
+        _ categories: [CleanupCategory],
+        onProgress: @Sendable @escaping (ScanProgress) -> Void = { _ in }
+    ) async -> [CategoryScan] {
         await withTaskGroup(of: (Int, CategoryScan).self) { group in
             for (index, category) in categories.enumerated() {
                 group.addTask { (index, await scanOne(category)) }
             }
             var result: [(Int, CategoryScan)] = []
-            for await value in group { result.append(value) }
+            for await value in group {
+                result.append(value)
+                onProgress(ScanProgress(completed: result.count,
+                                        total: categories.count,
+                                        finished: value.1.category.title))
+            }
             // Task completion order is not guaranteed — restore the original.
             return result.sorted { $0.0 < $1.0 }.map(\.1)
         }
