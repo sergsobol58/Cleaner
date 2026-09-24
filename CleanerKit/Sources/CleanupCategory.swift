@@ -31,6 +31,10 @@ public struct CleanupCategory: Identifiable, Sendable, Equatable {
     public let minimumIdleDays: Int
     public let selects: ChildSelection
 
+    /// Added by the user rather than shipped with the app.
+    public var isUserDefined: Bool { id.hasPrefix(Self.userPrefix) }
+    public static let userPrefix = "user:"
+
     public init(id: String, title: String, consequence: String, roots: [URL],
                 minimumIdleDays: Int = 0, selects: ChildSelection = .everything) {
         self.id = id
@@ -50,7 +54,56 @@ public enum Catalog {
     /// `listing` is substituted in tests: some roots are derived from the
     /// actual contents of a directory, and a test must not depend on whatever
     /// happens to be on someone's machine.
+    /// The built-in categories, minus anything the user switched off, plus
+    /// the directories they added.
     public static func standard(
+        home: URL,
+        listing: (URL) -> [URL] = Catalog.contentsOfDirectory,
+        installed: InstalledApplications = .everything,
+        user: UserCatalog = .empty
+    ) -> [CleanupCategory] {
+        let switchedOff = Set(user.disabled)
+        return builtIn(home: home, listing: listing, installed: installed)
+            .filter { !switchedOff.contains($0.id) }
+            + userCategories(user.folders, home: home, listing: listing, installed: installed)
+    }
+
+    /// Directories the user added. They are validated again here rather than
+    /// only when added: the file can be edited by hand, and a path that was
+    /// fine last week can be a symlink into Documents today.
+    static func userCategories(_ folders: [UserFolder], home: URL,
+                               listing: (URL) -> [URL],
+                               installed: InstalledApplications) -> [CleanupCategory] {
+        let covered = builtIn(home: home, listing: listing, installed: installed)
+            .filter { $0.selects == .everything }
+            .flatMap(\.roots)
+        let denied = deniedPaths(home: home)
+
+        return folders.compactMap { folder -> CleanupCategory? in
+            guard case .success(let url) = UserCatalogStore.validate(
+                folder.path, home: home, covered: covered, denied: denied) else { return nil }
+
+            return CleanupCategory(
+                id: CleanupCategory.userPrefix + url.path,
+                title: folder.title.isEmpty ? url.lastPathComponent : folder.title,
+                consequence: folder.consequence ?? kitString("A folder you added"),
+                roots: [url])
+        }
+    }
+
+    /// Roots of built-in categories that take every child. A user folder may
+    /// not sit inside one of these, or the same bytes would be counted twice.
+    public static func fullyCoveredRoots(
+        home: URL,
+        listing: (URL) -> [URL] = Catalog.contentsOfDirectory,
+        installed: InstalledApplications = .everything
+    ) -> [URL] {
+        builtIn(home: home, listing: listing, installed: installed)
+            .filter { $0.selects == .everything }
+            .flatMap(\.roots)
+    }
+
+    static func builtIn(
         home: URL,
         listing: (URL) -> [URL] = Catalog.contentsOfDirectory,
         installed: InstalledApplications = .everything
@@ -239,9 +292,12 @@ public enum Catalog {
     /// `PathGuard` rejects it as `isRootItself` — but its contents can.
     public static func allowedRoots(
         home: URL,
-        listing: (URL) -> [URL] = Catalog.contentsOfDirectory
+        listing: (URL) -> [URL] = Catalog.contentsOfDirectory,
+        user: UserCatalog = .empty
     ) -> [URL] {
-        standard(home: home, listing: listing).flatMap(\.roots)
+        // A switched-off category must not keep widening the allow list, and
+        // a folder the user added has to be in it or nothing there can go.
+        standard(home: home, listing: listing, user: user).flatMap(\.roots)
     }
 
     /// Never touched, even when the path falls inside an allowed root.
@@ -262,9 +318,10 @@ public enum Catalog {
 
     public static func pathGuard(
         home: URL,
-        listing: (URL) -> [URL] = Catalog.contentsOfDirectory
+        listing: (URL) -> [URL] = Catalog.contentsOfDirectory,
+        user: UserCatalog = .empty
     ) -> PathGuard {
-        PathGuard(allowedRoots: allowedRoots(home: home, listing: listing),
+        PathGuard(allowedRoots: allowedRoots(home: home, listing: listing, user: user),
                   deniedPaths: deniedPaths(home: home))
     }
 }

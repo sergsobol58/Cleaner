@@ -133,14 +133,35 @@ final class PathGuardTests: XCTestCase {
         XCTAssertEqual(try sut.validate(url).get(), url)
     }
 
-    func testAllowsDeeplyNestedPath() throws {
+    /// Deliberately refused. Everything the scanner offers is a direct child
+    /// of a root, so nothing legitimate is lost — and without this, one broad
+    /// root such as Application Support would stand in for the whole tree
+    /// below it, which is most of the Library.
+    func testRefusesAnythingDeeperThanADirectChild() throws {
         let url = try makeDir("Library/Developer/Xcode/DerivedData/App-abc123")
-        XCTAssertEqual(try sut.validate(url).get(), url)
+        XCTAssertEqual(sut.validate(url), .failure(.outsideAllowedRoots))
     }
 
     func testAllowsRegularFile() throws {
         let url = home.appendingPathComponent("Library/Caches/file.db")
         try Data("x".utf8).write(to: url)
         XCTAssertEqual(try sut.validate(url).get(), url)
+    }
+}
+
+final class PathGuardDepthTests: XCTestCase {
+    private let root = URL(fileURLWithPath: "/Users/test/Library/Application Support")
+
+    /// Everything the scanner offers is a direct child of a root. Admitting
+    /// deeper paths would let one broad root stand in for the whole tree
+    /// beneath it.
+    func testOnlyDirectChildrenOfARootAreAllowed() {
+        let guardian = PathGuard(allowedRoots: [root], deniedPaths: [])
+
+        XCTAssertEqual(guardian.validate(root.appending(path: "a/b")),
+                       .failure(.outsideAllowedRoots))
+        XCTAssertEqual(guardian.validate(root.appending(path: "a/b/c")),
+                       .failure(.outsideAllowedRoots))
+        XCTAssertEqual(guardian.validate(root), .failure(.isRootItself))
     }
 }

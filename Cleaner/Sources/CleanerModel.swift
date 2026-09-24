@@ -51,8 +51,61 @@ final class CleanerModel {
     var unreadableRoots: [URL] { scans.flatMap(\.unreadableRoots) }
     var isUnderReporting: Bool { !hasFullDiskAccess || !unreadableRoots.isEmpty }
 
+    // MARK: Folders the user added
+
+    private(set) var userCatalog: UserCatalog = .empty
+    /// Set when the file exists but could not be parsed. The user edited it
+    /// by hand and deserves to know the edit did nothing.
+    private(set) var userCatalogProblem: String?
+
     private let home = FileManager.default.homeDirectoryForCurrentUser
-    private var pathGuard: PathGuard { Catalog.pathGuard(home: home) }
+    private var pathGuard: PathGuard { Catalog.pathGuard(home: home, user: userCatalog) }
+
+    /// Taken from the last scan rather than recomputed: working it out walks
+    /// the disk, and the answer is already sitting in `scans`.
+    private var coveredRoots: [URL] {
+        scans.map(\.category)
+            .filter { $0.selects == .everything && !$0.isUserDefined }
+            .flatMap(\.roots)
+    }
+
+    /// Returns why the folder was refused, or nil once it is added.
+    func addFolder(_ url: URL) -> FolderRejection? {
+        switch UserCatalogStore.validate(url.path, home: home, covered: coveredRoots,
+                                         denied: Catalog.deniedPaths(home: home)) {
+        case .failure(let rejection):
+            return rejection
+        case .success(let folder):
+            guard !userCatalog.folders.contains(where: { $0.path == folder.path }) else { return nil }
+            var edited = userCatalog
+            edited.folders.append(UserFolder(title: folder.lastPathComponent, path: folder.path))
+            write(edited)
+            return nil
+        }
+    }
+
+    func removeFolder(_ category: CleanupCategory) {
+        guard category.isUserDefined else { return }
+        let path = String(category.id.dropFirst(CleanupCategory.userPrefix.count))
+        var edited = userCatalog
+        edited.folders.removeAll { ($0.path as NSString).expandingTildeInPath == path }
+        write(edited)
+    }
+
+    func revealCatalogFile() {
+        NSWorkspace.shared.activateFileViewerSelecting([UserCatalogStore.url(home: home)])
+    }
+
+    private func write(_ catalog: UserCatalog) {
+        do {
+            try UserCatalogStore.save(catalog, home: home)
+            userCatalog = catalog
+            userCatalogProblem = nil
+            Task { await scan() }
+        } catch {
+            userCatalogProblem = error.localizedDescription
+        }
+    }
 
     var selectedItems: [ScanItem] { selection.items(from: scans) }
     var selectedBytes: Int64 { selection.bytes(in: scans) }
@@ -105,6 +158,10 @@ final class CleanerModel {
         scanProgress = nil
         wasStopped = false
 
+        let loaded = UserCatalogStore.load(home: home)
+        userCatalog = loaded.catalog
+        userCatalogProblem = loaded.problem
+
         let installed = SystemApplications.installed()
         let policy = ScanPolicy(home: home, runningApps: SystemRunningApps.current(),
                                 installed: installed)
@@ -112,8 +169,9 @@ final class CleanerModel {
         // Building the catalog now walks the disk looking for cache
         // directories, which is not work for the main actor.
         let home = home
+        let user = userCatalog
         let categories = await Task.detached {
-            Catalog.standard(home: home, installed: installed)
+            Catalog.standard(home: home, installed: installed, user: user)
         }.value
         let fresh = await scanner.scan(categories) { [weak self] progress in
             Task { @MainActor in self?.report(progress) }

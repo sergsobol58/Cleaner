@@ -45,7 +45,13 @@ public struct PathGuard: Sendable {
             return .failure(.inDenyList)
         }
 
-        guard allowedRoots.contains(where: { Self.isPrefix($0, of: parts) }) else {
+        // A direct child of a root, and nothing deeper. Every finding the
+        // scanner produces is a direct child by construction, so this costs
+        // nothing — and it stops a broad root like Application Support, which
+        // the leftovers category needs, from quietly admitting everything
+        // nested below it.
+        guard allowedRoots.contains(where: { $0.count + 1 == parts.count
+                                             && Self.isPrefix($0, of: parts) }) else {
             return .failure(.outsideAllowedRoots)
         }
 

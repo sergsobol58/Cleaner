@@ -664,6 +664,125 @@
           }
         }
       }
+    },
+    "A folder you added": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A folder you added"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Тека, яку ви додали"
+          }
+        }
+      }
+    },
+    "that is not a full path": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "that is not a full path"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "це не повний шлях"
+          }
+        }
+      }
+    },
+    "only folders inside your home folder can be added": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "only folders inside your home folder can be added"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "додавати можна лише теки всередині вашої домівки"
+          }
+        }
+      }
+    },
+    "that is your home folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "that is your home folder"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "це ваша домашня тека"
+          }
+        }
+      }
+    },
+    "this folder is on the never-touch list": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "this folder is on the never-touch list"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ця тека у списку недоторканних"
+          }
+        }
+      }
+    },
+    "that is not a folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "that is not a folder"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "це не тека"
+          }
+        }
+      }
+    },
+    "a built-in category already covers this folder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "a built-in category already covers this folder"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "цю теку вже покриває вбудована категорія"
+          }
+        }
+      }
     }
   }
 }

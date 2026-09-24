@@ -92,6 +92,42 @@ still start with a window on screen.
 Closing the window never quits the app: the menu bar item stays, and quitting is
 an explicit choice in the panel.
 
+## Your own catalog
+
+`~/Library/Application Support/Cleaner/catalog.json` holds the edits that are
+yours to make. It is written by the app and safe to edit by hand; a file that
+cannot be parsed is reported in the window rather than ignored.
+
+```json
+{
+  "disabled": ["agentVM", "logs"],
+  "folders": [
+    { "title": "My renders",
+      "path": "~/Library/Caches/MyTool",
+      "consequence": "Recomputed on the next render" }
+  ]
+}
+```
+
+`disabled` leaves built-in categories out, and a category that is out stops
+widening what may be deleted as well as disappearing from the list. `folders`
+adds directories of your own; the toolbar button adds one through a panel, and
+a category's context menu removes it.
+
+Every path is validated on **every** read, not only when it is added, because
+the file can be edited by hand and a path that was a folder last week can be a
+symlink into Documents today. A path is refused when it is outside your home
+folder, is your home folder, touches the never-touch list, is not a folder, or
+sits inside a built-in category's territory — the last because the same bytes
+counted in two categories is a bug, not a feature.
+
+The built-in categories are deliberately **not** in this file. Five of the
+fourteen are computed rather than listed — a search for cache directories by
+name, the rule that identifies abandoned applications, filters over a
+directory listing — and moving them into data would mean inventing a small
+language for describing what to delete. That is a poor thing to invent, and a
+worse thing to expose to hand-editing.
+
 ## Safety model
 
 The priority is keeping data, not cleaning thoroughly.
@@ -103,6 +139,12 @@ regular "Put Back" works. The app has no permanent deletion at all.
 absolute, not a symlink, free of `..`, strictly inside an allowed root and not
 equal to the root itself. The allowed roots are exactly the category roots, so
 only their contents can go.
+
+**Direct children only.** `PathGuard` admits a path exactly one component
+below an allowed root, never deeper. Everything the scanner offers is a direct
+child by construction, so nothing legitimate is lost — and without this, one
+broad root such as `Application Support`, which the leftovers category needs,
+would quietly stand in for most of the Library.
 
 **A never-touch list on top of the allow list,** compared in both directions:
 you can neither delete something forbidden nor delete a directory that has

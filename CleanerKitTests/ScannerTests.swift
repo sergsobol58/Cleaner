@@ -24,9 +24,14 @@ final class ScannerTests: XCTestCase {
         try Data(repeating: 0x41, count: bytes).write(to: url)
     }
 
-    private func makeScanner() -> DiskScanner {
-        DiskScanner(pathGuard: PathGuard(allowedRoots: [root], deniedPaths: []),
-                    policy: ScanPolicy(home: root))
+    /// Mirrors how the app wires this: what may be deleted is exactly the
+    /// roots of the categories being scanned, and nothing deeper than their
+    /// direct children.
+    private func scan(_ categories: [CleanupCategory]) async -> [CategoryScan] {
+        await DiskScanner(
+            pathGuard: PathGuard(allowedRoots: categories.flatMap(\.roots), deniedPaths: []),
+            policy: ScanPolicy(home: root)
+        ).scan(categories)
     }
 
     private func category(_ roots: [URL]) -> CleanupCategory {
@@ -37,7 +42,7 @@ final class ScannerTests: XCTestCase {
         try write("big/file.bin", bytes: 40_000)
         try write("small/file.bin", bytes: 1_000)
 
-        let scans = await makeScanner().scan([category([root])])
+        let scans = await scan([category([root])])
 
         XCTAssertEqual(scans.count, 1)
         XCTAssertEqual(scans[0].items.count, 2)
@@ -49,7 +54,7 @@ final class ScannerTests: XCTestCase {
         try write("folder/one.bin", bytes: 10_000)
         try write("folder/deeper/two.bin", bytes: 10_000)
 
-        let scans = await makeScanner().scan([category([root])])
+        let scans = await scan([category([root])])
         let item = try XCTUnwrap(scans[0].items.first)
 
         XCTAssertEqual(scans[0].items.count, 1, "nested content must not get its own row")
@@ -61,14 +66,14 @@ final class ScannerTests: XCTestCase {
         try write("huge/b.bin", bytes: 90_000)
         try write("medium/c.bin", bytes: 40_000)
 
-        let scans = await makeScanner().scan([category([root])])
+        let scans = await scan([category([root])])
         let names = scans[0].items.map { $0.url.lastPathComponent }
 
         XCTAssertEqual(names, ["huge", "medium", "tiny"])
     }
 
     func testMissingRootIsNotAnError() async throws {
-        let scans = await makeScanner().scan([category([root.appendingPathComponent("no-such-thing")])])
+        let scans = await scan([category([root.appendingPathComponent("no-such-thing")])])
 
         XCTAssertEqual(scans.count, 1)
         XCTAssertTrue(scans[0].items.isEmpty)
@@ -82,7 +87,7 @@ final class ScannerTests: XCTestCase {
         try FileManager.default.createSymbolicLink(
             at: root.appendingPathComponent("link"), withDestinationURL: target)
 
-        let scans = await makeScanner().scan([category([root])])
+        let scans = await scan([category([root])])
         let names = scans[0].items.map { $0.url.lastPathComponent }
 
         XCTAssertFalse(names.contains("link"), "a symlink must never be offered for removal")
@@ -94,7 +99,7 @@ final class ScannerTests: XCTestCase {
         try write("first/b.bin", bytes: 10_000)
         try write("second/c.bin", bytes: 1_000)
 
-        let scans = await makeScanner().scan([category([
+        let scans = await scan([category([
             root.appendingPathComponent("first"),
             root.appendingPathComponent("second"),
         ])])
@@ -111,7 +116,7 @@ final class ScannerTests: XCTestCase {
         try write("first/a.bin", bytes: 1_000)
         try write("second/b.bin", bytes: 1_000)
 
-        let scans = await makeScanner().scan([category([
+        let scans = await scan([category([
             root.appendingPathComponent("first"),
             root.appendingPathComponent("second"),
         ])])

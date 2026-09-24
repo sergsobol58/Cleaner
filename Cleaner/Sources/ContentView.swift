@@ -1,9 +1,11 @@
+import AppKit
 import CleanerKit
 import SwiftUI
 
 struct ContentView: View {
     @Bindable var model: CleanerModel
     @State private var section: Section = .files
+    @State private var refusal: FolderRejection?
 
     private enum Section: Hashable, CaseIterable {
         case files, simulators
@@ -22,6 +24,9 @@ struct ContentView: View {
             case .files:
                 VStack(spacing: 0) {
                     if model.isUnderReporting { PermissionBanner(model: model) }
+                    if let problem = model.userCatalogProblem {
+                        CatalogProblemBanner(problem: problem, model: model)
+                    }
                     content
                 }
                 .safeAreaInset(edge: .bottom) { footer }
@@ -30,7 +35,22 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 620, minHeight: 440)
+        .alert("That folder cannot be added", isPresented: Binding(
+            get: { refusal != nil }, set: { if !$0 { refusal = nil } }
+        ), presenting: refusal) { _ in
+            Button("OK") { refusal = nil }
+        } message: { rejection in
+            Text(rejection.reason)
+        }
         .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    if let folder = chooseFolder() { refusal = model.addFolder(folder) }
+                } label: {
+                    Label("Add a folder…", systemImage: "folder.badge.plus")
+                }
+                .help("Watch a folder of your own")
+            }
             ToolbarItem(placement: .principal) {
                 Picker("", selection: $section) {
                     ForEach(Section.allCases, id: \.self) { Text($0.title).tag($0) }
@@ -204,6 +224,20 @@ struct ContentView: View {
         .frame(width: 420)
     }
 
+    /// The panel is the only way a folder enters the catalog through the
+    /// interface: the user points at it themselves, and it is validated
+    /// before it widens anything.
+    private func chooseFolder() -> URL? {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.allowsMultipleSelection = false
+        panel.directoryURL = FileManager.default.homeDirectoryForCurrentUser
+            .appending(path: "Library")
+        panel.prompt = String(localized: "Add")
+        return panel.runModal() == .OK ? panel.url : nil
+    }
+
     private func centered(@ViewBuilder _ content: () -> some View) -> some View {
         VStack(spacing: 10) { content() }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -268,6 +302,11 @@ private struct CategoryHeader: View {
                 .foregroundStyle(scan.items.isEmpty ? .tertiary : .primary)
         }
         .padding(.vertical, 4)
+        .contextMenu {
+            if scan.category.isUserDefined {
+                Button("Stop watching this folder") { model.removeFolder(scan.category) }
+            }
+        }
     }
 }
 
@@ -390,6 +429,36 @@ private struct ReportView: View {
     }
 }
 
+
+/// A hand-edited catalog file that could not be read.
+private struct CatalogProblemBanner: View {
+    let problem: String
+    let model: CleanerModel
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "doc.badge.exclamationmark").foregroundStyle(.orange)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Your catalog file could not be read")
+                    .font(.callout.weight(.medium))
+                Text(problem)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 8)
+
+            Button("Show file") { model.revealCatalogFile() }
+                .controlSize(.small)
+        }
+        .padding(12)
+        .background(.quaternary, in: .rect(cornerRadius: 10))
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+    }
+}
 
 /// Says out loud that the scan was partial.
 ///
