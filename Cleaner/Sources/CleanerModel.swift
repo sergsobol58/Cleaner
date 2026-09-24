@@ -107,7 +107,11 @@ final class CleanerModel {
 
         let policy = ScanPolicy(home: home, runningApps: SystemRunningApps.current())
         let scanner = DiskScanner(pathGuard: pathGuard, policy: policy)
-        let fresh = await scanner.scan(Catalog.standard(home: home)) { [weak self] progress in
+        // Building the catalog now walks the disk looking for cache
+        // directories, which is not work for the main actor.
+        let home = home
+        let categories = await Task.detached { Catalog.standard(home: home) }.value
+        let fresh = await scanner.scan(categories) { [weak self] progress in
             Task { @MainActor in self?.report(progress) }
         }
 

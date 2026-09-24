@@ -114,6 +114,16 @@ Mail, Messages, Keychains, `~/.ssh`, device backups, `Xcode/Archives`,
 Comparison is by path component rather than by string: a string prefix would
 read `CachesOther` as part of `Caches`.
 
+**Found by name, not by a list of applications.** Chromium and Electron give
+their caches the same handful of directory names, so the catalog searches
+`Application Support` for those names four levels down instead of naming
+applications one by one. On the machine this was written on that reaches 147
+directories holding 5.2 GB across Notion, Figma, Postman, TradingView and
+others — including applications installed after this was written. A match ends
+the descent, because Chromium nests a `Code Cache` inside `Cache` and counting
+both would count the same files twice. A test asserts no root is claimed by
+two categories, which is the same double-counting bug seen from the other end.
+
 **A scan can be stopped.** Measuring `DerivedData` walks a lot of files, so
 progress is reported per category and `allocatedSize` checks for cancellation
 as it walks — a scan the user is still waiting on is not a cancelled one.
@@ -181,7 +191,8 @@ the name `content-v2` says nothing on its own, but under the heading
 | Application caches | Xcode, JetBrains, VS Code, Chrome, Homebrew, playwright and others | Apps rebuild their cache |
 | Simulator builds made by Claude | `Application Support/Claude/simulator-builds` | Recreated on the next build |
 | Claude sandbox virtual machine | `Application Support/Claude/vm_bundles` | Several GB downloaded again |
-| Desktop app caches | Claude and VS Code caches, cached `.vsix` installers | Rebuilt; installed extensions stay |
+| Caches inside application data | `Cache`, `Code Cache`, `GPUCache` and kin found by name under `Application Support` | Rebuilt; settings and documents stay |
+| Caches of sandboxed applications | `Containers/*/Data/Library/Caches` | Rebuilt on next launch |
 | Downloaded models and runtimes | `~/.cache/huggingface`, `codex-runtimes`, `uv` | Downloaded again on demand |
 | Application logs | `~/Library/Logs` | Only useful while diagnosing |
 | Downloaded updates | `*.ShipIt` directories in `~/Library/Caches` | Downloaded again if needed |

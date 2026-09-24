@@ -118,14 +118,25 @@ public enum Catalog {
                 roots: [home.appending(path: "Library/Application Support/Claude/vm_bundles")],
                 minimumIdleDays: 7
             ),
+            // A search by name rather than a list of applications: the same
+            // handful of directory names covers every Chromium and Electron
+            // app on the Mac, including ones installed after this was written.
             CleanupCategory(
                 id: "desktopAppCaches",
-                title: kitString("Desktop app caches"),
-                consequence: kitString("Apps rebuild these; VS Code keeps its installed extensions"),
-                roots: [
-                    "Claude/Cache", "Claude/Code Cache",
-                    "Code/CachedExtensionVSIXs", "Code/CachedData",
-                ].map { home.appending(path: "Library/Application Support/\($0)") }
+                title: kitString("Caches inside application data"),
+                consequence: kitString("Applications rebuild these; settings and documents stay"),
+                roots: find(named: chromiumCacheNames,
+                            under: home.appending(path: "Library/Application Support"),
+                            depth: 4, listing: listing)
+                    + ["Code/CachedExtensionVSIXs", "Code/CachedData"]
+                        .map { home.appending(path: "Library/Application Support/\($0)") }
+            ),
+            CleanupCategory(
+                id: "sandboxedAppCaches",
+                title: kitString("Caches of sandboxed applications"),
+                consequence: kitString("Applications rebuild these on next launch"),
+                roots: listing(home.appending(path: "Library/Containers"))
+                    .map { $0.appending(path: "Data/Library/Caches") }
             ),
             CleanupCategory(
                 id: "modelCaches",
@@ -155,9 +166,38 @@ public enum Catalog {
         ]
     }
 
+    /// Directory names Chromium and Electron give their caches. Every desktop
+    /// application built on them uses the same ones, which is why a search by
+    /// name reaches dozens of applications that a list of names never would.
+    static let chromiumCacheNames: Set<String> = [
+        "Cache", "Code Cache", "GPUCache", "ShaderCache", "GrShaderCache",
+        "DawnGraphiteCache", "DawnWebGPUCache", "CacheStorage", "ScriptCache",
+    ]
+
+    /// Directories with one of these names, anywhere down to `depth` below
+    /// `root`. A match ends the descent: caches do not nest inside caches, and
+    /// walking into one would only find the files we are already going to
+    /// count through its parent.
+    static func find(named names: Set<String>, under root: URL, depth: Int,
+                     listing: (URL) -> [URL]) -> [URL] {
+        guard depth > 0 else { return [] }
+        var found: [URL] = []
+        for child in listing(root) {
+            if names.contains(child.lastPathComponent) {
+                found.append(child)
+            } else {
+                found += find(named: names, under: child, depth: depth - 1, listing: listing)
+            }
+        }
+        return found
+    }
+
+    /// Subdirectories only. Everything the catalog looks for is a directory,
+    /// and descending into files would multiply the work for nothing.
     public static func contentsOfDirectory(_ url: URL) -> [URL] {
-        (try? FileManager.default.contentsOfDirectory(
-            at: url, includingPropertiesForKeys: nil)) ?? []
+        ((try? FileManager.default.contentsOfDirectory(
+            at: url, includingPropertiesForKeys: [.isDirectoryKey])) ?? [])
+            .filter { (try? $0.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true }
     }
 
     /// Only category roots are allowed. The root itself cannot be deleted —

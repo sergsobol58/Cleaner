@@ -444,40 +444,6 @@
         }
       }
     },
-    "Desktop app caches": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Desktop app caches"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Кеші настільних програм"
-          }
-        }
-      }
-    },
-    "Apps rebuild these; VS Code keeps its installed extensions": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Apps rebuild these; VS Code keeps its installed extensions"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Програми створять їх заново; встановлені розширення VS Code лишаються"
-          }
-        }
-      }
-    },
     "Downloaded models and runtimes": {
       "extractionState": "manual",
       "localizations": {
@@ -576,6 +542,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "змінено щойно"
+          }
+        }
+      }
+    },
+    "Caches inside application data": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caches inside application data"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кеші всередині даних програм"
+          }
+        }
+      }
+    },
+    "Applications rebuild these; settings and documents stay": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applications rebuild these; settings and documents stay"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Програми створять їх заново; налаштування й документи лишаються"
+          }
+        }
+      }
+    },
+    "Caches of sandboxed applications": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caches of sandboxed applications"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кеші програм у пісочниці"
+          }
+        }
+      }
+    },
+    "Applications rebuild these on next launch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applications rebuild these on next launch"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Програми створять їх заново при наступному запуску"
           }
         }
       }

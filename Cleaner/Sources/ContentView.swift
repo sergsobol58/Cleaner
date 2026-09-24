@@ -247,9 +247,13 @@ private struct CategoryHeader: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(scan.category.title)
+                // An unreadable folder outranks the count: a category can
+                // hold one finding and still be hiding hundreds of folders.
                 Group {
-                    if scan.items.isEmpty {
-                        Text(scan.unreadableRoots.isEmpty ? "Empty" : "Could not be read")
+                    if !scan.unreadableRoots.isEmpty {
+                        Text("Could not be read")
+                    } else if scan.items.isEmpty {
+                        Text("Empty")
                     } else {
                         Text("\(scan.category.consequence) · \(scan.items.count.itemsText)")
                     }

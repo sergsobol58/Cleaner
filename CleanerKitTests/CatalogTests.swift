@@ -14,7 +14,7 @@ final class CatalogTests: XCTestCase {
                        ["derivedData", "deviceSupport", "packageCaches",
                         "xcodeBuildMCP", "swiftPM", "appCaches",
                         "agentBuilds", "agentVM", "desktopAppCaches",
-                        "modelCaches", "logs", "appUpdaters"])
+                        "sandboxedAppCaches", "modelCaches", "logs", "appUpdaters"])
     }
 
     /// The whole workspace must not be a root: wiping it during a build in
@@ -48,6 +48,21 @@ final class CatalogTests: XCTestCase {
         let byID = Dictionary(uniqueKeysWithValues: categories().map { ($0.id, $0) })
         XCTAssertEqual(byID["modelCaches"]?.minimumIdleDays, 7)
         XCTAssertEqual(byID["agentVM"]?.minimumIdleDays, 7)
+    }
+
+    /// One place must belong to one category. Two categories sharing a root
+    /// would count the same bytes twice and let the user tick the same files
+    /// in two places.
+    func testNoRootBelongsToTwoCategories() {
+        var owner: [URL: String] = [:]
+        for category in categories() {
+            for root in category.roots {
+                if let taken = owner[root] {
+                    XCTFail("\(root.path) is claimed by both \(taken) and \(category.id)")
+                }
+                owner[root] = category.id
+            }
+        }
     }
 
     func testUpdaterCategoryTakesOnlyShipItDirectories() {
@@ -120,5 +135,58 @@ final class CatalogTests: XCTestCase {
             XCTAssertEqual(sut.validate(home.appendingPathComponent(unsafe)), .failure(.inDenyList),
                            "\(unsafe) must be on the never-touch list")
         }
+    }
+}
+
+final class CacheSweepTests: XCTestCase {
+    private let root = URL(fileURLWithPath: "/Users/test/Library/Application Support")
+
+    /// A tree shaped like the real one: an Electron app keeps caches two
+    /// levels down inside a partition, not only beside its data.
+    private func tree(_ url: URL) -> [URL] {
+        let map: [String: [String]] = [
+            "Application Support": ["Notion", "Figma", "Boring"],
+            "Notion": ["Partitions", "Cache"],
+            "Partitions": ["notion"],
+            "notion": ["Cache", "Code Cache", "IndexedDB"],
+            "Figma": ["DesktopProfile"],
+            "DesktopProfile": ["v42"],
+            "v42": ["GPUCache"],
+            "Boring": ["Documents"],
+        ]
+        return (map[url.lastPathComponent] ?? []).map { url.appending(path: $0) }
+    }
+
+    private func sweep(depth: Int) -> [String] {
+        Catalog.find(named: Catalog.chromiumCacheNames, under: root,
+                     depth: depth, listing: tree)
+            .map { $0.path.replacingOccurrences(of: root.path + "/", with: "") }
+    }
+
+    func testFindsCachesAtEveryDepthAndLeavesDataAlone() {
+        XCTAssertEqual(Set(sweep(depth: 4)), [
+            "Notion/Cache",
+            "Notion/Partitions/notion/Cache",
+            "Notion/Partitions/notion/Code Cache",
+            "Figma/DesktopProfile/v42/GPUCache",
+        ])
+    }
+
+    /// Chromium nests a "Code Cache" inside "Cache". Reporting both would
+    /// count the same files twice, through the parent and again on their own.
+    func testAMatchEndsTheDescent() {
+        let nested = Catalog.find(named: Catalog.chromiumCacheNames, under: root, depth: 4) { url in
+            switch url.lastPathComponent {
+            case "Application Support": [url.appending(path: "App")]
+            case "App":                 [url.appending(path: "Cache")]
+            case "Cache":               [url.appending(path: "Code Cache")]
+            default:                    []
+            }
+        }
+        XCTAssertEqual(nested.map(\.lastPathComponent), ["Cache"])
+    }
+
+    func testDepthIsRespected() {
+        XCTAssertEqual(Set(sweep(depth: 2)), ["Notion/Cache"])
     }
 }
