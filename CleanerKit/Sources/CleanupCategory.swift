@@ -116,6 +116,12 @@ public enum Catalog {
                 roots: [home.appending(path: "Library/Developer/Xcode/DerivedData")]
             ),
             CleanupCategory(
+                id: "xcodePreviews",
+                title: kitString("Xcode previews cache"),
+                consequence: kitString("A preview is built again the first time you open it"),
+                roots: [home.appending(path: "Library/Developer/Xcode/UserData/Previews")]
+            ),
+            CleanupCategory(
                 id: "deviceSupport",
                 title: kitString("Symbols of connected devices"),
                 consequence: kitString("Downloaded again the next time a device is connected"),
@@ -139,15 +145,23 @@ public enum Catalog {
                     home.appending(path: ".gradle/caches"),
                 ]
             ),
-            // Deliberately not the whole workspace: wiping it during a build
-            // in flight breaks that build. Test bundles and logs are the bulk
-            // of the size anyway, and DerivedData and state stay put.
+            // Not the whole workspace: `state` and `locks` are what a run in
+            // flight needs, and they are tiny. Everything else here is build
+            // output, which is the same throwaway as Xcode's own DerivedData
+            // and was measured at 78 GB across 102 workspaces — far too much
+            // to leave out of a disk cleaner over caution alone. The idle
+            // rule is what protects a run in progress: a workspace being
+            // built right now carries today's timestamp and is held back.
             CleanupCategory(
                 id: "xcodeBuildMCP",
-                title: kitString("XcodeBuildMCP test products and logs"),
-                consequence: kitString("Finished test runs; build state stays in place"),
+                title: kitString("XcodeBuildMCP build output"),
+                consequence: kitString("Rebuilt on the next run; workspace state stays in place"),
                 roots: listing(home.appending(path: "Library/Developer/XcodeBuildMCP/workspaces"))
-                    .flatMap { [$0.appending(path: "test-products"), $0.appending(path: "logs")] }
+                    .flatMap { workspace in
+                        ["DerivedData", "test-products", "result-bundles", "logs"]
+                            .map { workspace.appending(path: $0) }
+                    },
+                minimumIdleDays: 1
             ),
             CleanupCategory(
                 id: "swiftPM",
@@ -155,6 +169,7 @@ public enum Catalog {
                 consequence: kitString("Packages and documentation are downloaded again"),
                 roots: [
                     home.appending(path: "Library/Caches/org.swift.swiftpm"),
+                    home.appending(path: ".cache/swifterpm"),
                     home.appending(path: "Library/Developer/Xcode/DocumentationCache"),
                 ]
             ),
@@ -316,12 +331,21 @@ public enum Catalog {
         ].map { home.appending(path: $0) }
     }
 
+    /// Subtrees re-opened inside a denied directory. `Xcode/UserData` holds
+    /// schemes, snippets and breakpoints and must stay, but `Previews` under
+    /// it is a build cache — 3.9 GB of one on the machine this was written
+    /// on — and protecting it along with the rest cost more than it saved.
+    public static func deniedExceptions(home: URL) -> [URL] {
+        [home.appending(path: "Library/Developer/Xcode/UserData/Previews")]
+    }
+
     public static func pathGuard(
         home: URL,
         listing: (URL) -> [URL] = Catalog.contentsOfDirectory,
         user: UserCatalog = .empty
     ) -> PathGuard {
         PathGuard(allowedRoots: allowedRoots(home: home, listing: listing, user: user),
-                  deniedPaths: deniedPaths(home: home))
+                  deniedPaths: deniedPaths(home: home),
+                  exceptions: deniedExceptions(home: home))
     }
 }

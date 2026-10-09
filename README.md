@@ -140,6 +140,14 @@ absolute, not a symlink, free of `..`, strictly inside an allowed root and not
 equal to the root itself. The allowed roots are exactly the category roots, so
 only their contents can go.
 
+**One carve-out in the never-touch list.** `Xcode/UserData` holds schemes,
+snippets and breakpoints, and `UserData/Previews` under it is a build cache —
+3.9 GB of one on the machine this was written on. `PathGuard` takes an
+explicit exception list: a path at or below an exception escapes the denial it
+sits inside, while the denied directory itself and every other child of it
+stay shut. Protection is given up for exactly the named subtree and nothing
+else, which is why it is a list of paths in code rather than a pattern.
+
 **Direct children only.** `PathGuard` admits a path exactly one component
 below an allowed root, never deeper. Everything the scanner offers is a direct
 child by construction, so nothing legitimate is lost — and without this, one
@@ -255,8 +263,9 @@ the name `content-v2` says nothing on its own, but under the heading
 | Xcode DerivedData | Indexes and intermediate builds | The next build is slower |
 | Device symbols | `iOS/watchOS/tvOS DeviceSupport` | Re-downloaded when a device connects |
 | Package manager caches | npm, Yarn, pnpm, pip, CocoaPods, Gradle | The next install is slower |
-| XcodeBuildMCP test products and logs | Finished test runs under `workspaces/*` | Build state is left in place |
-| SwiftPM and documentation cache | `org.swift.swiftpm`, `DocumentationCache` | Re-downloaded |
+| XcodeBuildMCP build output | `DerivedData`, `result-bundles`, `test-products`, `logs` under `workspaces/*` | Rebuilt on the next run; `state` and `locks` stay |
+| SwiftPM and documentation cache | `org.swift.swiftpm`, `~/.cache/swifterpm`, `DocumentationCache` | Re-downloaded |
+| Xcode previews cache | `Xcode/UserData/Previews` | A preview builds again when opened |
 | Application caches | Xcode, JetBrains, VS Code, Chrome, Homebrew, playwright and others | Apps rebuild their cache |
 | Simulator builds made by Claude | `Application Support/Claude/simulator-builds` | Recreated on the next build |
 | Claude sandbox virtual machine | `Application Support/Claude/vm_bundles` | Several GB downloaded again |

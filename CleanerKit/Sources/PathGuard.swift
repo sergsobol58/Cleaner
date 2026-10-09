@@ -18,10 +18,17 @@ public enum GuardRejection: Error, Equatable, Sendable {
 public struct PathGuard: Sendable {
     private let allowedRoots: [[String]]
     private let deniedPaths: [[String]]
+    private let exceptions: [[String]]
 
-    public init(allowedRoots: [URL], deniedPaths: [URL]) {
+    /// `exceptions` re-open one subtree inside a denied one, for the case
+    /// where a directory worth protecting has a pure cache sitting under it.
+    /// The denied directory itself stays shut: only paths at or below an
+    /// exception get through, so protection is lost for exactly the subtree
+    /// named here and nothing else.
+    public init(allowedRoots: [URL], deniedPaths: [URL], exceptions: [URL] = []) {
         self.allowedRoots = allowedRoots.map { Self.components(of: $0) }
         self.deniedPaths = deniedPaths.map { Self.components(of: $0) }
+        self.exceptions = exceptions.map { Self.components(of: $0) }
     }
 
     public func validate(_ url: URL) -> Result<URL, GuardRejection> {
@@ -36,13 +43,15 @@ public struct PathGuard: Sendable {
 
         if allowedRoots.contains(parts) { return .failure(.isRootItself) }
 
+        let excepted = exceptions.contains { $0 == parts || Self.isPrefix($0, of: parts) }
+
         // Compared both ways: neither delete something forbidden, nor delete a
         // directory that has something forbidden inside it.
         for denied in deniedPaths
             where denied == parts
             || Self.isPrefix(denied, of: parts)
             || Self.isPrefix(parts, of: denied) {
-            return .failure(.inDenyList)
+            guard excepted else { return .failure(.inDenyList) }
         }
 
         // A direct child of a root, and nothing deeper. Every finding the

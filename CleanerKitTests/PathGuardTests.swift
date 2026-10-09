@@ -165,3 +165,38 @@ final class PathGuardDepthTests: XCTestCase {
         XCTAssertEqual(guardian.validate(root), .failure(.isRootItself))
     }
 }
+
+/// A cache sitting under a directory worth protecting: `Xcode/UserData` holds
+/// schemes and breakpoints, while `UserData/Previews` under it is throwaway.
+final class PathGuardExceptionTests: XCTestCase {
+    private let home = URL(fileURLWithPath: "/Users/test")
+    private var userData: URL { home.appending(path: "Library/Developer/Xcode/UserData") }
+    private var previews: URL { userData.appending(path: "Previews") }
+
+    private var sut: PathGuard {
+        PathGuard(allowedRoots: [previews, home.appending(path: "Library/Developer/Xcode")],
+                  deniedPaths: [userData],
+                  exceptions: [previews])
+    }
+
+    func testSomethingBelowTheExceptionIsNoLongerDenied() {
+        XCTAssertNotEqual(sut.validate(previews.appending(path: "Project-abc")),
+                          .failure(.inDenyList))
+    }
+
+    /// The protection is lost for the named subtree and nothing else.
+    func testTheDeniedDirectoryItselfStaysShut() {
+        XCTAssertEqual(sut.validate(userData), .failure(.inDenyList))
+        XCTAssertEqual(sut.validate(userData.appending(path: "CodeSnippets")),
+                       .failure(.inDenyList))
+    }
+
+    /// A parent is still refused for holding something forbidden, because the
+    /// exception does not cover the parent.
+    func testAParentOfTheDeniedDirectoryIsStillRefused() {
+        XCTAssertEqual(sut.validate(home.appending(path: "Library/Developer/Xcode")),
+                       .failure(.isRootItself))
+        XCTAssertEqual(sut.validate(home.appending(path: "Library/Developer")),
+                       .failure(.inDenyList))
+    }
+}

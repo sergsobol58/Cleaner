@@ -342,40 +342,6 @@
         }
       }
     },
-    "XcodeBuildMCP test products and logs": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "XcodeBuildMCP test products and logs"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Тестові збірки та логи XcodeBuildMCP"
-          }
-        }
-      }
-    },
-    "Finished test runs; build state stays in place": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Finished test runs; build state stays in place"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Завершені прогони тестів; стан збірки лишається на місці"
-          }
-        }
-      }
-    },
     "Simulator builds made by Claude": {
       "extractionState": "manual",
       "localizations": {
@@ -780,6 +746,74 @@
           "stringUnit": {
             "state": "translated",
             "value": "цю теку вже покриває вбудована категорія"
+          }
+        }
+      }
+    },
+    "XcodeBuildMCP build output": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "XcodeBuildMCP build output"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Результати збірок XcodeBuildMCP"
+          }
+        }
+      }
+    },
+    "Rebuilt on the next run; workspace state stays in place": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rebuilt on the next run; workspace state stays in place"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Зберуться заново при наступному запуску; стан робочої теки лишається"
+          }
+        }
+      }
+    },
+    "Xcode previews cache": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Xcode previews cache"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кеш превʼю Xcode"
+          }
+        }
+      }
+    },
+    "A preview is built again the first time you open it": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A preview is built again the first time you open it"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Превʼю збереться заново, щойно ви його відкриєте"
           }
         }
       }

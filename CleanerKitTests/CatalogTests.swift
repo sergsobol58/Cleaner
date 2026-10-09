@@ -11,25 +11,36 @@ final class CatalogTests: XCTestCase {
 
     func testHasExpectedCategories() {
         XCTAssertEqual(categories().map(\.id),
-                       ["derivedData", "deviceSupport", "packageCaches",
+                       ["derivedData", "xcodePreviews", "deviceSupport", "packageCaches",
                         "xcodeBuildMCP", "swiftPM", "appCaches",
                         "agentBuilds", "agentVM", "desktopAppCaches",
                         "sandboxedAppCaches", "modelCaches", "logs",
                         "leftovers", "appUpdaters"])
     }
 
-    /// The whole workspace must not be a root: wiping it during a build in
-    /// flight breaks that build, so only finished products and logs are named.
-    func testMCPCategoryTargetsProductsAndLogsRatherThanWholeWorkspaces() {
+    /// Build output is taken, but the workspace itself never is: `state` and
+    /// `locks` are what a run in flight needs, and wiping them breaks it.
+    func testMCPCategoryTakesBuildOutputButNotTheWorkspaceItself() {
         let workspaces = home.appending(path: "Library/Developer/XcodeBuildMCP/workspaces")
         let found = Catalog.standard(home: home, listing: { directory in
             directory == workspaces ? [workspaces.appending(path: "proj-abc")] : []
         }).first { $0.id == "xcodeBuildMCP" }
 
-        XCTAssertEqual(found?.roots.map { $0.pathComponents.suffix(2).joined(separator: "/") },
-                       ["proj-abc/test-products", "proj-abc/logs"])
+        XCTAssertEqual(Set(found?.roots.map { $0.lastPathComponent } ?? []),
+                       ["DerivedData", "test-products", "result-bundles", "logs"])
         XCTAssertFalse(found?.roots.contains(workspaces) ?? true,
                        "the workspaces directory itself must never be a root")
+        XCTAssertFalse(found?.roots.contains { $0.lastPathComponent == "state"
+                                            || $0.lastPathComponent == "locks" } ?? true,
+                       "what a run in flight needs must stay")
+    }
+
+    /// A workspace being built right now carries today's timestamp, and that
+    /// is what keeps its build output out of the offer.
+    func testMCPCategoryWaitsADayBeforeOfferingBuildOutput() {
+        let found = Catalog.standard(home: home, listing: { _ in [] })
+            .first { $0.id == "xcodeBuildMCP" }
+        XCTAssertEqual(found?.minimumIdleDays, 1)
     }
 
     /// Measured, not assumed: a cache directory's timestamp moves whenever
