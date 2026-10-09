@@ -1368,6 +1368,23 @@
           }
         }
       }
+    },
+    "The space is freed once the Trash is emptied.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The space is freed once the Trash is emptied."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Місце звільниться, коли ви очистите Кошик."
+          }
+        }
+      }
     }
   }
 }

@@ -36,3 +36,38 @@ final class TrashTests: XCTestCase {
                        "the app must never reach back into what it already moved")
     }
 }
+
+final class TrashSizeTests: XCTestCase {
+    private var home: URL!
+
+    override func setUpWithError() throws {
+        home = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appending(path: "trash-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try? FileManager.default.removeItem(at: home)
+    }
+
+    /// macOS keeps the Trash behind the same permission as the rest of the
+    /// Library, so this is the common case — and reporting zero would have
+    /// the app announce an empty Trash right after filling it.
+    func testAnUnreadableTrashIsUnknownRatherThanEmpty() {
+        XCTAssertNil(TrashFolder.sizeBytes(home: home), "no Trash directory at all")
+    }
+
+    func testAReadableEmptyTrashIsZero() throws {
+        try FileManager.default.createDirectory(at: TrashFolder.url(home: home),
+                                                withIntermediateDirectories: true)
+        XCTAssertEqual(TrashFolder.sizeBytes(home: home), 0)
+    }
+
+    func testCountsWhatTheTrashHolds() throws {
+        let trash = TrashFolder.url(home: home)
+        try FileManager.default.createDirectory(at: trash, withIntermediateDirectories: true)
+        try Data(repeating: 0, count: 2_048).write(to: trash.appending(path: "dropped.bin"))
+
+        XCTAssertGreaterThan(TrashFolder.sizeBytes(home: home) ?? 0, 0)
+    }
+}

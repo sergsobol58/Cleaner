@@ -51,13 +51,16 @@ public enum DiskSpace {
 public enum TrashFolder {
     public static func url(home: URL) -> URL { home.appending(path: ".Trash") }
 
-    /// Zero when the Trash cannot be read, which reads the same as empty on
-    /// screen — acceptable here, because this number only ever adds context
-    /// to an action the user already took.
-    public static func sizeBytes(home: URL) -> Int64 {
+    /// Nil when the Trash cannot be read, which is the common case: macOS
+    /// keeps it behind the same permission as the rest of the Library.
+    ///
+    /// Not zero. Zero reads as "empty", and reporting an empty Trash in the
+    /// same breath as moving 73 GB into it is the exact kind of confident
+    /// wrong number this app exists to avoid.
+    public static func sizeBytes(home: URL) -> Int64? {
         let trash = url(home: home)
         guard let entries = try? FileManager.default.contentsOfDirectory(
-            at: trash, includingPropertiesForKeys: nil) else { return 0 }
+            at: trash, includingPropertiesForKeys: nil) else { return nil }
         return entries.reduce(0) { $0 + allocatedSize(of: $1) }
     }
 }

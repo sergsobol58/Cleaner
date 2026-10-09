@@ -233,6 +233,11 @@ Trash is emptied, so the report says exactly that and shows what the Trash
 holds. The app never empties it — that would be the one irreversible act this
 design exists to avoid. `~/.Trash` is on the never-touch list as well.
 
+The Trash size is reported only when it could actually be read. macOS keeps
+the Trash behind the same permission as the rest of the Library, and an
+unreadable Trash used to come back as zero — so the app announced an empty
+Trash in the same breath as moving 73 GB into it. Unknown is now unknown.
+
 **An unreadable folder is not an empty one.** Without Full Disk Access macOS
 hides directories, and a scan that counted them as empty would report a tidy
 Mac nobody looked at. `CategoryScan.unreadableRoots` keeps them apart and the

@@ -373,7 +373,7 @@ private struct ItemRow: View {
 
 private struct ReportView: View {
     let report: RemovalReport?
-    let trashBytes: Int64
+    let trashBytes: Int64?
     let onOpenTrash: () -> Void
     let onRescan: () -> Void
 
@@ -392,7 +392,16 @@ private struct ReportView: View {
             // The number above is not freed space, and saying so is the
             // difference between a report and a boast.
             VStack(spacing: 6) {
-                Text("The space is freed once the Trash is emptied. It holds \(trashBytes.formattedBytes) now.")
+                // The size is only claimed when it was actually read. Saying
+                // "it holds 0 bytes" right after moving gigabytes into it is
+                // worse than saying nothing about the size at all.
+                Group {
+                    if let trashBytes {
+                        Text("The space is freed once the Trash is emptied. It holds \(trashBytes.formattedBytes) now.")
+                    } else {
+                        Text("The space is freed once the Trash is emptied.")
+                    }
+                }
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

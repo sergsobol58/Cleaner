@@ -36,7 +36,7 @@ final class CleanerModel {
 
     /// What sits in the Trash right now. Moving files there frees nothing
     /// until it is emptied, and the app says so rather than implying otherwise.
-    private(set) var trashBytes: Int64 = 0
+    private(set) var trashBytes: Int64?
     private(set) var hasFullDiskAccess = true
     private(set) var volume: VolumeSpace?
 
