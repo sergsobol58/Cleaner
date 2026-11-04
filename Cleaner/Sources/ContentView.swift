@@ -24,18 +24,6 @@ struct ContentView: View {
         // that is replaced on every section switch takes the whole toolbar
         // out of the window and back in, and the sidebar loses the inset
         // that keeps its first row clear of the window controls.
-        // Same lesson as the toolbar, learnt again: a search field lives in
-        // the toolbar, so it is window chrome. Hanging it off the detail view
-        // took it out of the window and back in on every section switch, and
-        // the sidebar lost the inset keeping its first row below the window
-        // controls — which is why only the one section without a search field
-        // looked right.
-        .searchable(text: searchText, placement: .toolbar, prompt: searchPrompt)
-        .onChange(of: model.query) { _, text in
-            // Typing on a screen with nothing to filter should take you where
-            // the filtering happens rather than appear to do nothing.
-            if !text.isEmpty, navigation.section == .overview { navigation.section = .files }
-        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -56,22 +44,6 @@ struct ContentView: View {
         }
         .task { await model.scanIfNeeded() }
         .sheet(isPresented: $model.isConfirming) { confirmation }
-    }
-
-    /// One field, routed to whatever the section in front of it can filter.
-    private var searchText: Binding<String> {
-        switch navigation.section {
-        case .memory, .processor: $system.query
-        default: $model.query
-        }
-    }
-
-    private var searchPrompt: Text {
-        switch navigation.section {
-        case .memory, .processor: Text("Search processes")
-        case .simulators: Text("Search simulators")
-        default: Text("Search categories and files")
-        }
     }
 
     private var sidebar: some View {
@@ -104,6 +76,7 @@ struct ContentView: View {
             OverviewView(model: model, system: system) { navigation.section = $0 }
         case .files:
             VStack(spacing: 0) {
+                SearchField(text: $model.query, prompt: "Search categories and files")
                 if model.isUnderReporting { PermissionBanner(model: model) }
                 if let problem = model.userCatalogProblem {
                     CatalogProblemBanner(problem: problem, model: model)
@@ -209,6 +182,7 @@ struct ContentView: View {
             }
         }
         .listStyle(.inset)
+        .scrollContentBackground(.hidden)
     }
 
     /// A category with one root shows its files directly; with several it

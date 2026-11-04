@@ -9,6 +9,7 @@ struct SimulatorsView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            SearchField(text: $model.query, prompt: "Search simulators")
             if model.simulatorsLoaded {
                 list
             } else {
@@ -67,6 +68,7 @@ struct SimulatorsView: View {
             }
         }
         .listStyle(.inset)
+        .scrollContentBackground(.hidden)
     }
 
     private func note(for runtime: SimulatorRuntime) -> String {

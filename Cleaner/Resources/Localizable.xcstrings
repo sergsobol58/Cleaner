@@ -2150,6 +2150,23 @@
           }
         }
       }
+    },
+    "Clear the search": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear the search"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Очистити пошук"
+          }
+        }
+      }
     }
   }
 }

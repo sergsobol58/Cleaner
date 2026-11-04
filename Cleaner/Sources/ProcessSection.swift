@@ -17,6 +17,7 @@ struct ProcessSection<Header: View>: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            SearchField(text: $model.query, prompt: "Search processes")
             header
             list
         }
@@ -36,6 +37,7 @@ struct ProcessSection<Header: View>: View {
             }
         }
         .listStyle(.inset)
+        .scrollContentBackground(.hidden)
     }
 
     private var footer: some View {
