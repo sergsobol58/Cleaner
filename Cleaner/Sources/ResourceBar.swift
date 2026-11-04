@@ -61,10 +61,12 @@ struct ResourceBar: View {
 extension View {
     /// The one surface every panel in the app sits on, so panels in different
     /// sections cannot drift apart.
-    func cardSurface(padding: CGFloat = 14) -> some View {
+    func cardSurface(padding: CGFloat = 14,
+                     material: AnyShapeStyle = AnyShapeStyle(.quaternary.opacity(0.6)))
+    -> some View {
         self
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.quaternary.opacity(0.6), in: .rect(cornerRadius: 12))
+            .background(material, in: .rect(cornerRadius: 14))
     }
 }

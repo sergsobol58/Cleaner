@@ -2133,6 +2133,23 @@
           }
         }
       }
+    },
+    "Search simulators": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Search simulators"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Пошук симуляторів"
+          }
+        }
+      }
     }
   }
 }

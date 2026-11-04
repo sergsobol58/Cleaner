@@ -27,7 +27,7 @@ struct SimulatorsView: View {
     private var list: some View {
         List {
             Section("Simulators") {
-                ForEach(model.devices) { device in
+                ForEach(model.matchingDevices) { device in
                     row(title: device.name,
                         note: model.note(for: device),
                         bytes: device.sizeBytes,
@@ -43,7 +43,7 @@ struct SimulatorsView: View {
             }
 
             Section("Runtime images") {
-                ForEach(model.runtimes) { runtime in
+                ForEach(model.matchingRuntimes) { runtime in
                     row(title: runtime.name,
                         note: note(for: runtime),
                         bytes: runtime.sizeBytes,

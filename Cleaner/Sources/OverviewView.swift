@@ -13,41 +13,64 @@ struct OverviewView: View {
     let system: SystemModel
     let goTo: (AppSection) -> Void
 
+    @Environment(\.accessibilityReduceTransparency) private var plain
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                headline
+            VStack(alignment: .leading, spacing: 16) {
+                hero
                 disk
                 memory
                 processor
             }
-            .padding(20)
-            .frame(maxWidth: 720, alignment: .leading)
+            .padding(24)
+            .frame(maxWidth: 760, alignment: .leading)
         }
         .frame(maxWidth: .infinity)
         .task { await system.watch() }
     }
 
-    private var headline: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(model.foundBytes.formattedBytes)
-                .font(.system(size: 52, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .contentTransition(.numericText())
+    /// The mark earns its place: it is the one thing on screen that says what
+    /// app this is before a single number is read.
+    private var hero: some View {
+        HStack(alignment: .center, spacing: 28) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(model.foundBytes.formattedBytes)
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .foregroundStyle(
+                        LinearGradient(colors: [.primary, .primary.opacity(0.75)],
+                                       startPoint: .top, endPoint: .bottom))
 
-            if model.phase == .scanning {
-                Text("Looking for space to reclaim…").foregroundStyle(.secondary)
-            } else {
-                Text("can be moved to the Trash").foregroundStyle(.secondary)
+                if model.phase == .scanning {
+                    Text("Looking for space to reclaim…").foregroundStyle(.secondary)
+                } else {
+                    Text("can be moved to the Trash").foregroundStyle(.secondary)
+                }
+
+                Button {
+                    goTo(.files)
+                } label: {
+                    Text("Review and clean…")
+                        .font(.headline)
+                        .padding(.horizontal, 22)
+                        .padding(.vertical, 11)
+                }
+                .buttonStyle(.plain)
+                .background(.tint, in: .capsule)
+                .foregroundStyle(.white)
+                .disabled(model.foundBytes == 0)
+                .opacity(model.foundBytes == 0 ? 0.5 : 1)
+                .padding(.top, 8)
             }
 
-            Button("Review and clean…") { goTo(.files) }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(model.foundBytes == 0)
-                .padding(.top, 6)
+            Spacer(minLength: 0)
+            HeroMark()
         }
-        .padding(.bottom, 4)
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Palette.panel(plain), in: .rect(cornerRadius: 18))
     }
 
     @ViewBuilder
@@ -131,6 +154,7 @@ struct OverviewView: View {
 /// one around it — leaving the title stranded outside the box it named and
 /// the chevron floating past the card's right edge.
 private struct Card<Content: View>: View {
+    @Environment(\.accessibilityReduceTransparency) private var plain
     let title: LocalizedStringKey
     let symbol: String
     let action: () -> Void
@@ -155,7 +179,7 @@ private struct Card<Content: View>: View {
             }
             content
         }
-        .cardSurface()
+        .cardSurface(material: Palette.panel(plain))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(.tint.opacity(isHovered ? 0.5 : 0), lineWidth: 1)

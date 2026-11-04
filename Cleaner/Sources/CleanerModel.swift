@@ -273,6 +273,18 @@ final class CleanerModel {
 
     // MARK: Simulators
 
+    /// The search field is shared by every section, so it must mean
+    /// something here too rather than sit dead in the toolbar.
+    var matchingDevices: [SimulatorDevice] {
+        query.isEmpty ? devices
+            : devices.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
+    var matchingRuntimes: [SimulatorRuntime] {
+        query.isEmpty ? runtimes
+            : runtimes.filter { $0.name.localizedCaseInsensitiveContains(query) }
+    }
+
     var selectedDevices: [SimulatorDevice] { devices.filter { deviceSelection.contains($0.id) } }
     var selectedRuntimes: [SimulatorRuntime] { runtimes.filter { runtimeSelection.contains($0.id) } }
 

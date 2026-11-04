@@ -6,6 +6,9 @@ struct ContentView: View {
     @Bindable var model: CleanerModel
     @Bindable var system: SystemModel
     @Bindable var navigation: Navigation
+
+    @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceTransparency) private var plain
     @State private var refusal: FolderRejection?
 
     var body: some View {
@@ -16,10 +19,23 @@ struct ContentView: View {
                 .navigationTitle(navigation.section.title)
         }
         .frame(minWidth: 820, minHeight: 520)
+        .containerBackground(Palette.window(scheme, plain: plain), for: .window)
         // Declared on the window, not on the detail. Hanging it off a view
         // that is replaced on every section switch takes the whole toolbar
         // out of the window and back in, and the sidebar loses the inset
         // that keeps its first row clear of the window controls.
+        // Same lesson as the toolbar, learnt again: a search field lives in
+        // the toolbar, so it is window chrome. Hanging it off the detail view
+        // took it out of the window and back in on every section switch, and
+        // the sidebar lost the inset keeping its first row below the window
+        // controls — which is why only the one section without a search field
+        // looked right.
+        .searchable(text: searchText, placement: .toolbar, prompt: searchPrompt)
+        .onChange(of: model.query) { _, text in
+            // Typing on a screen with nothing to filter should take you where
+            // the filtering happens rather than appear to do nothing.
+            if !text.isEmpty, navigation.section == .overview { navigation.section = .files }
+        }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -42,27 +58,43 @@ struct ContentView: View {
         .sheet(isPresented: $model.isConfirming) { confirmation }
     }
 
+    /// One field, routed to whatever the section in front of it can filter.
+    private var searchText: Binding<String> {
+        switch navigation.section {
+        case .memory, .processor: $system.query
+        default: $model.query
+        }
+    }
+
+    private var searchPrompt: Text {
+        switch navigation.section {
+        case .memory, .processor: Text("Search processes")
+        case .simulators: Text("Search simulators")
+        default: Text("Search categories and files")
+        }
+    }
+
     private var sidebar: some View {
         List(selection: $navigation.section) {
             SwiftUI.Section {
-                Label(AppSection.overview.title, systemImage: AppSection.overview.symbol)
-                    .tag(AppSection.overview)
+                SidebarRow(section: .overview).tag(AppSection.overview)
             }
 
             SwiftUI.Section("Disk") {
                 ForEach(AppSection.disk) { item in
-                    Label(item.title, systemImage: item.symbol).tag(item)
+                    SidebarRow(section: item).tag(item)
                 }
             }
 
             SwiftUI.Section("System") {
                 ForEach(AppSection.system) { item in
-                    Label(item.title, systemImage: item.symbol).tag(item)
+                    SidebarRow(section: item).tag(item)
                 }
             }
         }
         .listStyle(.sidebar)
-        .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
+        .scrollContentBackground(.hidden)
+        .navigationSplitViewColumnWidth(min: 190, ideal: 210, max: 280)
     }
 
     @ViewBuilder
@@ -79,8 +111,6 @@ struct ContentView: View {
                 content
             }
             .safeAreaInset(edge: .bottom) { footer }
-            .searchable(text: $model.query, placement: .toolbar,
-                        prompt: Text("Search categories and files"))
         case .memory:
             MemoryView(model: system)
         case .processor:
@@ -598,5 +628,25 @@ private struct PathActions: View {
     var body: some View {
         Button("Show in Finder") { model.reveal(url) }
         Button("Copy path") { model.copyPath(url) }
+    }
+}
+
+
+/// A sidebar row with its symbol in a soft plate, which is what gives the
+/// list a rhythm instead of five lines of text with a glyph in front.
+private struct SidebarRow: View {
+    let section: AppSection
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: section.symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(.tint)
+                .frame(width: 26, height: 26)
+                .background(.tint.opacity(0.14), in: .rect(cornerRadius: 7))
+                .accessibilityHidden(true)
+            Text(section.title)
+        }
+        .padding(.vertical, 3)
     }
 }

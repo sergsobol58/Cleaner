@@ -21,7 +21,6 @@ struct ProcessSection<Header: View>: View {
             list
         }
         .safeAreaInset(edge: .bottom) { footer }
-        .searchable(text: $model.query, placement: .toolbar, prompt: Text("Search processes"))
         .task { await model.watch() }
         .sheet(isPresented: $model.isConfirming) { ConfirmQuit(model: model) }
         .sheet(isPresented: Binding(get: { model.report != nil },
