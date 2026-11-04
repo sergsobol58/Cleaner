@@ -21,6 +21,7 @@ struct SimulatorsView: View {
             }
             footer
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { if !model.simulatorsLoaded { await model.loadSimulators() } }
         .sheet(isPresented: $model.isConfirmingSimulators) { confirmation }
     }

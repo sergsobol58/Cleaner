@@ -22,6 +22,7 @@ struct ProcessSection<Header: View>: View {
             list
             footer
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await model.watch() }
         .sheet(isPresented: $model.isConfirming) { ConfirmQuit(model: model) }
         .sheet(isPresented: Binding(get: { model.report != nil },

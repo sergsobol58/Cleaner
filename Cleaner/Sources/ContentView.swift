@@ -16,6 +16,13 @@ struct ContentView: View {
             sidebar
         } detail: {
             detail
+                // The detail column hands its content an unbounded height,
+                // and against an unbounded proposal `maxHeight: .infinity`
+                // means the ideal size, not the available one — measured:
+                // 1256 points of content inside a 900 point column, spilling
+                // past both ends of the window. This ties the height to the
+                // container instead of to the proposal.
+                .containerRelativeFrame(.vertical)
                 .navigationTitle(navigation.section.title)
         }
         .frame(minWidth: 820, minHeight: 520)
@@ -99,9 +106,21 @@ struct ContentView: View {
                 if let problem = model.userCatalogProblem {
                     CatalogProblemBanner(problem: problem, model: model)
                 }
+                // Every branch is told to fill, not merely offered the room.
+                // The branches that asked took 807 points and the one that
+                // did not took its own content height — 1084 — overflowing
+                // the window and pushing the search field off the top.
                 content
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 footer
             }
+            // The frame is what keeps the list inside the window. Without a
+            // height to fill, a VStack hands its flexible child the child's
+            // ideal size — and a List's ideal height is all of its rows at
+            // once. Measured: 1084 points of list inside a 952 point window,
+            // overflowing top and bottom, which is what pushed the search
+            // field and the banner off the top of the screen.
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .memory:
             MemoryView(model: system)
         case .processor:
@@ -180,27 +199,39 @@ struct ContentView: View {
         }
     }
 
+    /// A scroll view rather than a `List`.
+    ///
+    /// Measured, not guessed: inside this stack a `List` ignored the height
+    /// it was offered and laid itself out at its full content height — 1084
+    /// points of rows in an 807 point space — which overflowed the window and
+    /// pushed the search field and the banner off the top of the screen. The
+    /// same stack offered the same space to every other view, and every other
+    /// view took it. A scroll view takes what it is given.
     private var categoryList: some View {
-        List {
-            ForEach(model.visibleScans) { scan in
-                if scan.items.isEmpty {
-                    CategoryHeader(scan: scan, model: model)
-                } else {
-                    DisclosureGroup(
-                        isExpanded: Binding(
-                            get: { model.isExpanded(scan) },
-                            set: { model.setExpanded(scan, $0) }
-                        )
-                    ) {
-                        detail(of: scan)
-                    } label: {
-                        CategoryHeader(scan: scan, model: model)
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(model.visibleScans) { scan in
+                    VStack(spacing: 0) {
+                        DisclosureGroup(
+                            isExpanded: Binding(
+                                get: { model.isExpanded(scan) },
+                                set: { model.setExpanded(scan, $0) }
+                            )
+                        ) {
+                            VStack(spacing: 0) { detail(of: scan) }
+                        } label: {
+                            CategoryHeader(scan: scan, model: model)
+                        }
+                        .disclosureGroupStyle(CategoryDisclosureStyle(
+                            hasContents: !scan.items.isEmpty))
+
+                        Divider().opacity(0.4)
                     }
+                    .padding(.horizontal, 12)
                 }
             }
+            .padding(.vertical, 4)
         }
-        .listStyle(.inset)
-        .scrollContentBackground(.hidden)
     }
 
     /// A category with one root shows its files directly; with several it
@@ -641,5 +672,35 @@ private struct SidebarRow: View {
             Text(section.title)
         }
         .padding(.vertical, 3)
+    }
+}
+
+
+/// The chevron only appears where there is something to open, and the whole
+/// label row is the target rather than the triangle alone.
+private struct CategoryDisclosureStyle: DisclosureGroupStyle {
+    let hasContents: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .rotationEffect(.degrees(configuration.isExpanded ? 90 : 0))
+                    .opacity(hasContents ? 1 : 0)
+                    .frame(width: 12)
+                configuration.label
+            }
+            .contentShape(.rect)
+            .onTapGesture {
+                guard hasContents else { return }
+                withAnimation(.easeOut(duration: 0.15)) {
+                    configuration.isExpanded.toggle()
+                }
+            }
+
+            if configuration.isExpanded { configuration.content }
+        }
     }
 }
