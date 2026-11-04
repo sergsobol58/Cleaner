@@ -26,6 +26,13 @@ struct ContentView: View {
         // behind the chrome. A plain background paints the same gradient
         // without touching how the window is laid out.
         .background(Palette.window(scheme, plain: plain))
+        // The gradient already paints behind the toolbar — a plain background
+        // ignores safe areas — but the toolbar draws its own material over
+        // it, which is the dark band across the top. Hiding that material is
+        // what makes the header the same surface as everything below it.
+        // Painting the toolbar with the gradient instead would start a second
+        // gradient in its own small box and simply move the seam.
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         // Declared on the window, not on the detail. Hanging it off a view
         // that is replaced on every section switch takes the whole toolbar
         // out of the window and back in, and the sidebar loses the inset
@@ -226,6 +233,7 @@ struct ContentView: View {
                 Text(model.summaryLine)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
