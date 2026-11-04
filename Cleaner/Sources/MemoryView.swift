@@ -7,7 +7,12 @@ struct MemoryView: View {
 
     var body: some View {
         ProcessSection(model: model, sorting: .memory) {
-            if let memory = model.memory { bar(memory) }
+            if let memory = model.memory {
+                bar(memory)
+                    .cardSurface()
+                    .padding(.horizontal, 12)
+                    .padding(.top, 10)
+            }
         }
     }
 

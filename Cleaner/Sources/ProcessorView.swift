@@ -8,7 +8,12 @@ struct ProcessorView: View {
 
     var body: some View {
         ProcessSection(model: model, sorting: .processor) {
-            if let processor = model.processor { bar(processor) }
+            if let processor = model.processor {
+                bar(processor)
+                    .cardSurface()
+                    .padding(.horizontal, 12)
+                    .padding(.top, 10)
+            }
         }
     }
 

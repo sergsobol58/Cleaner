@@ -44,8 +44,24 @@ struct ContentView: View {
             sidebar
         } detail: {
             detail
+                .navigationTitle(section.title)
         }
         .frame(minWidth: 820, minHeight: 520)
+        // Declared on the window, not on the detail. Hanging it off a view
+        // that is replaced on every section switch takes the whole toolbar
+        // out of the window and back in, and the sidebar loses the inset
+        // that keeps its first row clear of the window controls.
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    if let folder = chooseFolder() { refusal = model.addFolder(folder) }
+                } label: {
+                    Label("Add a folder…", systemImage: "folder.badge.plus")
+                }
+                .help("Watch a folder of your own")
+                .disabled(section != .files)
+            }
+        }
         .alert("That folder cannot be added", isPresented: Binding(
             get: { refusal != nil }, set: { if !$0 { refusal = nil } }
         ), presenting: refusal) { _ in
@@ -59,8 +75,10 @@ struct ContentView: View {
 
     private var sidebar: some View {
         List(selection: $section) {
-            Label(Section.overview.title, systemImage: Section.overview.symbol)
-                .tag(Section.overview)
+            SwiftUI.Section {
+                Label(Section.overview.title, systemImage: Section.overview.symbol)
+                    .tag(Section.overview)
+            }
 
             SwiftUI.Section("Disk") {
                 ForEach(Section.disk) { item in
@@ -80,41 +98,24 @@ struct ContentView: View {
 
     @ViewBuilder
     private var detail: some View {
-        Group {
-            switch section {
-            case .overview:
-                OverviewView(model: model, system: system) { section = $0 }
-            case .files:
-                VStack(spacing: 0) {
-                    if model.isUnderReporting { PermissionBanner(model: model) }
-                    if let problem = model.userCatalogProblem {
-                        CatalogProblemBanner(problem: problem, model: model)
-                    }
-                    content
+        switch section {
+        case .overview:
+            OverviewView(model: model, system: system) { section = $0 }
+        case .files:
+            VStack(spacing: 0) {
+                if model.isUnderReporting { PermissionBanner(model: model) }
+                if let problem = model.userCatalogProblem {
+                    CatalogProblemBanner(problem: problem, model: model)
                 }
-                .safeAreaInset(edge: .bottom) { footer }
-            case .memory:
-                MemoryView(model: system)
-            case .processor:
-                ProcessorView(model: system)
-            case .simulators:
-                SimulatorsView(model: model)
+                content
             }
-        }
-        .navigationTitle(section.title)
-        .toolbar {
-            // Adding a folder is a thing you do to the file catalogue, so it
-            // has no business being on screen anywhere else.
-            if section == .files {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        if let folder = chooseFolder() { refusal = model.addFolder(folder) }
-                    } label: {
-                        Label("Add a folder…", systemImage: "folder.badge.plus")
-                    }
-                    .help("Watch a folder of your own")
-                }
-            }
+            .safeAreaInset(edge: .bottom) { footer }
+        case .memory:
+            MemoryView(model: system)
+        case .processor:
+            ProcessorView(model: system)
+        case .simulators:
+            SimulatorsView(model: model)
         }
     }
 

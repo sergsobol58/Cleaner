@@ -1,8 +1,12 @@
 import SwiftUI
 
-/// One row of coloured segments over a shared total, with the numbers
-/// spelled out underneath. Used for memory, for the processor, and for the
-/// disk on the overview, so the three read as the same kind of fact.
+/// One row of coloured segments over a shared total, with the numbers spelled
+/// out underneath. Used for memory, for the processor, and for the disk on the
+/// overview, so the three read as the same kind of fact.
+///
+/// Deliberately chrome-less: it brings no background or padding of its own.
+/// It used to, and placing it inside a card produced a container within a
+/// container, with the card's own heading stranded outside the box it titled.
 struct ResourceBar: View {
     struct Segment: Identifiable {
         let id = UUID()
@@ -51,9 +55,16 @@ struct ResourceBar: View {
             }
             .font(.caption)
         }
-        .padding(12)
-        .background(.quaternary, in: .rect(cornerRadius: 10))
-        .padding(.horizontal, 12)
-        .padding(.top, 10)
+    }
+}
+
+extension View {
+    /// The one surface every panel in the app sits on, so panels in different
+    /// sections cannot drift apart.
+    func cardSurface(padding: CGFloat = 14) -> some View {
+        self
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.quaternary.opacity(0.6), in: .rect(cornerRadius: 12))
     }
 }

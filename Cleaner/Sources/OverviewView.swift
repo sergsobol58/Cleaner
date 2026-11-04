@@ -25,7 +25,7 @@ struct OverviewView: View {
             .frame(maxWidth: 720, alignment: .leading)
         }
         .frame(maxWidth: .infinity)
-        .task { await system.refresh() }
+        .task { await system.watch() }
     }
 
     private var headline: some View {
@@ -85,6 +85,9 @@ struct OverviewView: View {
                         .init(title: "Compressed", color: .orange,
                               fraction: fraction(snapshot.compressed, snapshot.total),
                               caption: snapshot.compressed.formattedBytes),
+                        .init(title: "Wired", color: .gray,
+                              fraction: fraction(snapshot.wired, snapshot.total),
+                              caption: snapshot.wired.formattedBytes),
                         .init(title: "Cached files", color: .secondary.opacity(0.4),
                               fraction: fraction(snapshot.cached, snapshot.total),
                               caption: snapshot.cached.formattedBytes),
@@ -121,8 +124,12 @@ struct OverviewView: View {
     }
 }
 
-/// A titled block that leads somewhere. The whole card is the target, so the
-/// hit area matches what the eye reads as one thing.
+/// A titled block that leads somewhere.
+///
+/// The heading lives inside the surface it titles. It used to sit above it,
+/// because the bar brought a background of its own and the card drew a second
+/// one around it — leaving the title stranded outside the box it named and
+/// the chevron floating past the card's right edge.
 private struct Card<Content: View>: View {
     let title: LocalizedStringKey
     let symbol: String
@@ -132,20 +139,29 @@ private struct Card<Content: View>: View {
     @State private var isHovered = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 6) {
-                Image(systemName: symbol).foregroundStyle(.secondary)
-                Text(title).font(.headline)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 7) {
+                Image(systemName: symbol)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.tint)
+                Text(title).font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.secondary)
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(.tertiary)
-                    .opacity(isHovered ? 1 : 0.4)
+                    .opacity(isHovered ? 1 : 0)
             }
             content
+        }
+        .cardSurface()
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .strokeBorder(.tint.opacity(isHovered ? 0.5 : 0), lineWidth: 1)
         }
         .contentShape(.rect)
         .onTapGesture(perform: action)
         .onHover { isHovered = $0 }
+        .animation(.easeOut(duration: 0.12), value: isHovered)
     }
 }
