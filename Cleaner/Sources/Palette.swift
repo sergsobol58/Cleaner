@@ -24,9 +24,21 @@ enum Palette {
                Color(red: 0.86, green: 0.90, blue: 0.99),
                Color(red: 0.95, green: 0.96, blue: 1.00)]
 
+        // Vertical, not diagonal. Across the toolbar's own band the colour
+        // is then uniform, so a solid toolbar background equal to the first
+        // stop meets the gradient without a seam. A diagonal gradient varies
+        // horizontally up there and nothing flat can match it.
         return AnyShapeStyle(LinearGradient(colors: colors,
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing))
+                                            startPoint: .top,
+                                            endPoint: .bottom))
+    }
+
+    /// The colour the gradient starts at, which is what the toolbar wears so
+    /// the header reads as the same surface as everything below it.
+    static func header(_ scheme: ColorScheme) -> Color {
+        scheme == .dark
+            ? Color(red: 0.05, green: 0.07, blue: 0.16)
+            : Color(red: 0.93, green: 0.95, blue: 1.00)
     }
 
     /// Panels float on the window rather than being painted on it, so the
