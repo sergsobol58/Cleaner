@@ -4,15 +4,18 @@ import SwiftUI
 
 struct ContentView: View {
     @Bindable var model: CleanerModel
+    @Bindable var system: SystemModel
     @State private var section: Section = .files
     @State private var refusal: FolderRejection?
 
     private enum Section: Hashable, CaseIterable {
-        case files, simulators
+        case files, memory, processor, simulators
 
         var title: LocalizedStringKey {
             switch self {
             case .files: "Files"
+            case .memory: "Memory"
+            case .processor: "Processor"
             case .simulators: "Simulators"
             }
         }
@@ -30,6 +33,10 @@ struct ContentView: View {
                     content
                 }
                 .safeAreaInset(edge: .bottom) { footer }
+            case .memory:
+                MemoryView(model: system)
+            case .processor:
+                ProcessorView(model: system)
             case .simulators:
                 SimulatorsView(model: model)
             }

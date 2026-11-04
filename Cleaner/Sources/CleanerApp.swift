@@ -4,11 +4,12 @@ import SwiftUI
 struct CleanerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     @State private var model = CleanerModel()
+    @State private var system = SystemModel()
     @State private var settings = AppSettings()
 
     var body: some Scene {
         WindowGroup("Cleaner", id: Self.mainWindowID) {
-            ContentView(model: model)
+            ContentView(model: model, system: system)
                 .task { settings.applyActivationPolicy() }
         }
         .windowResizability(.contentMinSize)

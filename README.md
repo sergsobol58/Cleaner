@@ -128,6 +128,38 @@ directory listing — and moving them into data would mean inventing a small
 language for describing what to delete. That is a poor thing to invent, and a
 worse thing to expose to hand-editing.
 
+## Memory and Processor
+
+Two sections over one reading. Both show the same process table, ordered by
+the resource the section is about, with a bar above it: memory split into
+applications, compressed, wired and cached files; the processor split into
+application work, system work and idle.
+
+**Nothing here frees a resource by itself, because nothing honestly can.**
+macOS hands cache back the moment anything needs it. The tools that claim to
+"free RAM" either flush the disk cache, which makes the machine slower, or
+allocate a block to push everything else into swap, which is worse. What
+frees a resource is whatever holds it letting go, so the only action offered
+is asking a process to quit.
+
+Quitting goes through `ProcessGuard`, which has the same shape as `PathGuard`
+and exists for the same reason: quitting the wrong thing ends the login
+session. It refuses processes belonging to another user, Cleaner itself, and
+a short named list — `launchd`, `loginwindow`, `WindowServer`, `securityd`
+and kin — whose loss ends or breaks the session. Dock and Finder are
+deliberately absent: macOS relaunches them, so quitting one is disruptive but
+not destructive. Like `Remover`, the guard runs again at the moment of
+quitting, because a list two seconds old is a list of pids that may already
+belong to something else.
+
+`SIGTERM`, never `SIGKILL`: an application that asks about unsaved work gets
+to ask.
+
+Swap is reported as a warning rather than a bar segment. It is not physical
+memory, so it has no share of a bar whose whole is the RAM installed — and it
+is worth saying out loud, because the kernel reports normal pressure while
+writing gigabytes to disk. It is coping, by making everything slower.
+
 ## Safety model
 
 The priority is keeping data, not cleaning thoroughly.

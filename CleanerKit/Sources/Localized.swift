@@ -12,3 +12,7 @@ extension Bundle {
 func kitString(_ key: String.LocalizationValue) -> String {
     String(localized: key, bundle: .cleanerKit)
 }
+
+public extension Int {
+    var processesText: String { String(localized: "\(self) processes", bundle: .cleanerKit) }
+}
