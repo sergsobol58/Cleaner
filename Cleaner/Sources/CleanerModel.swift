@@ -19,6 +19,7 @@ final class CleanerModel {
     /// the app does not make it for them.
     var selection = SelectionState()
     var expanded: Set<String> = []
+    var query = ""
     var isConfirming = false
 
     // MARK: Simulators — a world apart, because removal there is irreversible
@@ -124,6 +125,17 @@ final class CleanerModel {
     }
 
     var foundBytes: Int64 { scans.reduce(0) { $0 + $1.totalBytes } }
+
+    /// A category matches on its own name or on anything it holds, so
+    /// searching for a file name still shows the category it lives in.
+    var visibleScans: [CategoryScan] {
+        guard !query.isEmpty else { return scans }
+        return scans.filter { scan in
+            scan.category.title.localizedCaseInsensitiveContains(query)
+                || scan.items.contains { $0.url.lastPathComponent
+                    .localizedCaseInsensitiveContains(query) }
+        }
+    }
 
     /// Found, next to what the disk actually has. Purgeable space is named
     /// only when there is enough of it to explain a confusing free figure.

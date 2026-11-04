@@ -11,7 +11,7 @@ import SwiftUI
 struct OverviewView: View {
     let model: CleanerModel
     let system: SystemModel
-    let goTo: (ContentView.Section) -> Void
+    let goTo: (AppSection) -> Void
 
     var body: some View {
         ScrollView {
@@ -137,6 +137,7 @@ private struct Card<Content: View>: View {
     @ViewBuilder var content: Content
 
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -162,6 +163,6 @@ private struct Card<Content: View>: View {
         .contentShape(.rect)
         .onTapGesture(perform: action)
         .onHover { isHovered = $0 }
-        .animation(.easeOut(duration: 0.12), value: isHovered)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: isHovered)
     }
 }

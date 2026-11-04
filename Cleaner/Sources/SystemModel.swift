@@ -22,6 +22,7 @@ final class SystemModel {
     private(set) var report: QuitReport?
 
     var selection: Set<pid_t> = []
+    var query = ""
     var isConfirming = false
     var acknowledged = false
 
@@ -45,10 +46,16 @@ final class SystemModel {
     var selectedBytes: Int64 { selected.reduce(0) { $0 + $1.residentBytes } }
     var canQuit: Bool { !selected.isEmpty && acknowledged }
 
+    /// Eight hundred processes is more than a list; without a way to narrow
+    /// it, finding the one you came for means scrolling past the rest.
     func sorted(by sorting: Sorting) -> [RunningProcess] {
-        switch sorting {
-        case .memory:    processes.sorted { $0.residentBytes > $1.residentBytes }
-        case .processor: processes.sorted { $0.cpuPercent > $1.cpuPercent }
+        let matching = query.isEmpty
+            ? processes
+            : processes.filter { $0.name.localizedCaseInsensitiveContains(query) }
+
+        return switch sorting {
+        case .memory:    matching.sorted { $0.residentBytes > $1.residentBytes }
+        case .processor: matching.sorted { $0.cpuPercent > $1.cpuPercent }
         }
     }
 

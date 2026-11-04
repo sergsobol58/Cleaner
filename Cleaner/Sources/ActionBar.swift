@@ -13,11 +13,22 @@ import SwiftUI
 struct ActionBar<Content: View>: View {
     @ViewBuilder var content: Content
 
+    /// Someone who has asked the system for less translucency has asked for
+    /// a readable background, not a prettier one. Glass is the whole point
+    /// of this bar, so the honest answer is to drop it rather than dilute it.
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+
     var body: some View {
         HStack(spacing: 12) { content }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity)
-            .glassEffect(.regular, in: .rect)
+            .background {
+                if reduceTransparency {
+                    Rectangle().fill(.background)
+                        .overlay(alignment: .top) { Divider() }
+                }
+            }
+            .glassEffect(reduceTransparency ? .identity : .regular, in: .rect)
     }
 }

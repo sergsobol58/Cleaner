@@ -5,46 +5,15 @@ import SwiftUI
 struct ContentView: View {
     @Bindable var model: CleanerModel
     @Bindable var system: SystemModel
-    @State private var section: Section = .overview
+    @Bindable var navigation: Navigation
     @State private var refusal: FolderRejection?
-
-    /// Grouped rather than listed flat: four peers in a row gave no hint
-    /// that two of them are about the disk and two about what is running.
-    enum Section: Hashable, CaseIterable, Identifiable {
-        case overview, files, simulators, memory, processor
-
-        var id: Self { self }
-
-        var title: LocalizedStringKey {
-            switch self {
-            case .overview: "Overview"
-            case .files: "Files"
-            case .simulators: "Simulators"
-            case .memory: "Memory"
-            case .processor: "Processor"
-            }
-        }
-
-        var symbol: String {
-            switch self {
-            case .overview: "square.grid.2x2"
-            case .files: "internaldrive"
-            case .simulators: "iphone"
-            case .memory: "memorychip"
-            case .processor: "cpu"
-            }
-        }
-
-        static let disk: [Section] = [.files, .simulators]
-        static let system: [Section] = [.memory, .processor]
-    }
 
     var body: some View {
         NavigationSplitView {
             sidebar
         } detail: {
             detail
-                .navigationTitle(section.title)
+                .navigationTitle(navigation.section.title)
         }
         .frame(minWidth: 820, minHeight: 520)
         // Declared on the window, not on the detail. Hanging it off a view
@@ -59,7 +28,7 @@ struct ContentView: View {
                     Label("Add a folder…", systemImage: "folder.badge.plus")
                 }
                 .help("Watch a folder of your own")
-                .disabled(section != .files)
+                .disabled(navigation.section != .files)
             }
         }
         .alert("That folder cannot be added", isPresented: Binding(
@@ -74,20 +43,20 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
-        List(selection: $section) {
+        List(selection: $navigation.section) {
             SwiftUI.Section {
-                Label(Section.overview.title, systemImage: Section.overview.symbol)
-                    .tag(Section.overview)
+                Label(AppSection.overview.title, systemImage: AppSection.overview.symbol)
+                    .tag(AppSection.overview)
             }
 
             SwiftUI.Section("Disk") {
-                ForEach(Section.disk) { item in
+                ForEach(AppSection.disk) { item in
                     Label(item.title, systemImage: item.symbol).tag(item)
                 }
             }
 
             SwiftUI.Section("System") {
-                ForEach(Section.system) { item in
+                ForEach(AppSection.system) { item in
                     Label(item.title, systemImage: item.symbol).tag(item)
                 }
             }
@@ -98,9 +67,9 @@ struct ContentView: View {
 
     @ViewBuilder
     private var detail: some View {
-        switch section {
+        switch navigation.section {
         case .overview:
-            OverviewView(model: model, system: system) { section = $0 }
+            OverviewView(model: model, system: system) { navigation.section = $0 }
         case .files:
             VStack(spacing: 0) {
                 if model.isUnderReporting { PermissionBanner(model: model) }
@@ -110,6 +79,8 @@ struct ContentView: View {
                 content
             }
             .safeAreaInset(edge: .bottom) { footer }
+            .searchable(text: $model.query, placement: .toolbar,
+                        prompt: Text("Search categories and files"))
         case .memory:
             MemoryView(model: system)
         case .processor:
@@ -125,6 +96,7 @@ struct ContentView: View {
         case .idle where model.wasStopped:
             centered {
                 Image(systemName: "stop.circle")
+                    .accessibilityHidden(true)
                     .font(.system(size: 30))
                     .foregroundStyle(.secondary)
                 Text("Scan stopped").font(.headline)
@@ -167,6 +139,7 @@ struct ContentView: View {
         case .results where model.foundBytes == 0:
             centered {
                 Image(systemName: "checkmark.seal")
+                    .accessibilityHidden(true)
                     .font(.system(size: 34))
                     .foregroundStyle(.green)
                     .frame(width: 88, height: 88)
@@ -188,7 +161,7 @@ struct ContentView: View {
 
     private var categoryList: some View {
         List {
-            ForEach(model.scans) { scan in
+            ForEach(model.visibleScans) { scan in
                 if scan.items.isEmpty {
                     CategoryHeader(scan: scan, model: model)
                 } else {
@@ -332,6 +305,18 @@ private struct TriStateBox: View {
                 .imageScale(.large)
         }
         .buttonStyle(.plain)
+        // The only control in the app with no text of its own. Without a
+        // label VoiceOver announces it as "button" and nothing else.
+        .accessibilityLabel("Select everything in this group")
+        .accessibilityValue(spoken)
+    }
+
+    private var spoken: LocalizedStringKey {
+        switch coverage {
+        case .none: "nothing selected"
+        case .partial: "some selected"
+        case .all: "all selected"
+        }
     }
 
     private var symbol: String {
@@ -355,6 +340,7 @@ private struct CategoryHeader: View {
             .disabled(scan.items.isEmpty)
 
             Image(systemName: scan.category.icon)
+                .accessibilityHidden(true)
                 .font(.system(size: 14))
                 .foregroundStyle(scan.items.isEmpty ? AnyShapeStyle(.tertiary)
                                                     : AnyShapeStyle(.tint))
