@@ -19,8 +19,8 @@ struct SimulatorsView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            footer
         }
-        .safeAreaInset(edge: .bottom) { footer }
         .task { if !model.simulatorsLoaded { await model.loadSimulators() } }
         .sheet(isPresented: $model.isConfirmingSimulators) { confirmation }
     }

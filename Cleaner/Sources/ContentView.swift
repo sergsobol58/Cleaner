@@ -75,6 +75,12 @@ struct ContentView: View {
         case .overview:
             OverviewView(model: model, system: system) { navigation.section = $0 }
         case .files:
+            // Not .safeAreaInset: a bottom inset on the detail view
+            // swallowed the top one the toolbar provides, and every section
+            // using it had its first row riding up under the window controls
+            // while the one section without it sat correctly. The cost is
+            // that content no longer scrolls under the bar; the window
+            // being laid out correctly is worth more than that.
             VStack(spacing: 0) {
                 SearchField(text: $model.query, prompt: "Search categories and files")
                 if model.isUnderReporting { PermissionBanner(model: model) }
@@ -82,8 +88,8 @@ struct ContentView: View {
                     CatalogProblemBanner(problem: problem, model: model)
                 }
                 content
+                footer
             }
-            .safeAreaInset(edge: .bottom) { footer }
         case .memory:
             MemoryView(model: system)
         case .processor:

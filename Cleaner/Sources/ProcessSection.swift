@@ -20,8 +20,8 @@ struct ProcessSection<Header: View>: View {
             SearchField(text: $model.query, prompt: "Search processes")
             header
             list
+            footer
         }
-        .safeAreaInset(edge: .bottom) { footer }
         .task { await model.watch() }
         .sheet(isPresented: $model.isConfirming) { ConfirmQuit(model: model) }
         .sheet(isPresented: Binding(get: { model.report != nil },
