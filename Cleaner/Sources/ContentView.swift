@@ -33,12 +33,12 @@ struct ContentView: View {
         // behind the chrome. A plain background paints the same gradient
         // without touching how the window is laid out.
         .background(Palette.window(scheme, plain: plain))
-        // Giving the toolbar a background rather than taking its background
-        // away. Hiding it made the header match and cost the top safe-area
-        // inset: every piece of window chrome this app has touched —
-        // containerBackground, a transparent toolbar — has had the same
-        // price, the content sliding up under the window controls.
-        .toolbarBackground(Palette.header(scheme), for: .windowToolbar)
+        // No material over the toolbar, so the window's own gradient runs
+        // unbroken from the top edge down. This cost the top safe-area inset
+        // when it was tried before containerRelativeFrame pinned the height;
+        // with the height tied to the container it no longer does. Measured:
+        // sidebar and detail both sit at y=52 with 900 points of room.
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         // Declared on the window, not on the detail. Hanging it off a view
         // that is replaced on every section switch takes the whole toolbar
         // out of the window and back in, and the sidebar loses the inset
