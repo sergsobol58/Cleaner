@@ -1810,6 +1810,40 @@
           }
         }
       }
+    },
+    "A few folders stayed shut": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A few folders stayed shut"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Кілька тек лишилися закритими"
+          }
+        }
+      }
+    },
+    "%@ refused to open even with Full Disk Access granted, so their contents are not in the totals below.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ refused to open even with Full Disk Access granted, so their contents are not in the totals below."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ не відкрилися навіть із наданим повним доступом до диска, тож їхнього вмісту немає в числах нижче."
+          }
+        }
+      }
     }
   }
 }

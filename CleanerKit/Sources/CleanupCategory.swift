@@ -349,3 +349,31 @@ public enum Catalog {
                   exceptions: deniedExceptions(home: home))
     }
 }
+
+/// A short name for a root that tells it apart from its neighbours.
+///
+/// The obvious rule — take the last two path components — produces
+/// "Library/Caches" for every sandboxed application on the Mac, because that
+/// is how macOS lays a container out. The identifying part sits further up.
+public enum RootLabel {
+    /// Components macOS uses to structure a path rather than to name
+    /// anything in it. Dropping them moves the identifying part into view.
+    private static let structural: Set<String> = [
+        "Library", "Data", "Containers", "Group Containers",
+        "Application Support", "Developer",
+    ]
+
+    public static func text(for root: URL, home: URL) -> String {
+        let parts = root.standardizedFileURL.pathComponents.filter { $0 != "/" }
+        let homeParts = home.standardizedFileURL.pathComponents.filter { $0 != "/" }
+
+        let relative = Array(parts.count > homeParts.count
+                             && Array(parts.prefix(homeParts.count)) == homeParts
+                             ? parts.dropFirst(homeParts.count)
+                             : parts[...])
+
+        let meaningful = relative.filter { !structural.contains($0) }
+        let kept = meaningful.isEmpty ? relative : meaningful
+        return kept.suffix(2).joined(separator: "/")
+    }
+}

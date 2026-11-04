@@ -202,3 +202,42 @@ final class CacheSweepTests: XCTestCase {
         XCTAssertEqual(Set(sweep(depth: 2)), ["Notion/Cache"])
     }
 }
+
+final class RootLabelTests: XCTestCase {
+    private let home = URL(fileURLWithPath: "/Users/test")
+
+    private func label(_ path: String) -> String {
+        RootLabel.text(for: home.appending(path: path), home: home)
+    }
+
+    /// The bug this exists for: every sandboxed application keeps its cache
+    /// at the same depth, so the last two components name none of them.
+    func testASandboxedCacheIsNamedAfterItsApplication() {
+        XCTAssertEqual(label("Library/Containers/com.x.VideoEditor/Data/Library/Caches"),
+                       "com.x.VideoEditor/Caches")
+        XCTAssertNotEqual(label("Library/Containers/com.x.VideoEditor/Data/Library/Caches"),
+                          label("Library/Containers/com.y.Notes/Data/Library/Caches"))
+    }
+
+    func testPartitionsOfOneApplicationStayApart() {
+        XCTAssertNotEqual(label("Library/Application Support/Notion/Partitions/notion/Cache"),
+                          label("Library/Application Support/Notion/Partitions/meeting/Cache"))
+    }
+
+    func testOrdinaryPathsKeepTheNameTheyAlreadyHad() {
+        XCTAssertEqual(label("Library/Caches/Homebrew"), "Caches/Homebrew")
+        XCTAssertEqual(label(".cache/swifterpm"), ".cache/swifterpm")
+        XCTAssertEqual(label("Library/Developer/XcodeBuildMCP/workspaces/mia-7/DerivedData"),
+                       "mia-7/DerivedData")
+    }
+
+    /// A path made only of structural components still needs a name.
+    func testAPathOfNothingButStructureFallsBackRatherThanVanishing() {
+        XCTAssertFalse(label("Library/Containers").isEmpty)
+    }
+
+    func testAPathOutsideHomeIsStillLabelled() {
+        XCTAssertEqual(RootLabel.text(for: URL(fileURLWithPath: "/opt/homebrew/Cellar"),
+                                      home: home), "homebrew/Cellar")
+    }
+}

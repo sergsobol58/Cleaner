@@ -476,31 +476,48 @@ private struct CatalogProblemBanner: View {
     }
 }
 
-/// Says out loud that the scan was partial.
+/// Says out loud that the scan was partial, and which of the two reasons it
+/// was partial for.
 ///
-/// An unreadable folder and an empty one look identical in a total, so
-/// without this the app would report a tidy Mac that nobody actually looked at.
+/// These need telling apart. Missing permission is something the user can
+/// fix, and pointing at Settings is the whole point. A folder that refuses
+/// even with permission granted is not, and sending them to Settings again
+/// to flip a switch that is already on is advice that wastes their time and
+/// teaches them to ignore the banner.
 private struct PermissionBanner: View {
     let model: CleanerModel
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Image(systemName: "eye.trianglebadge.exclamationmark")
-                .foregroundStyle(.orange)
+            Image(systemName: model.hasFullDiskAccess
+                  ? "eye.slash" : "eye.trianglebadge.exclamationmark")
+                .foregroundStyle(model.hasFullDiskAccess ? AnyShapeStyle(.secondary)
+                                                         : AnyShapeStyle(.orange))
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("This scan is incomplete")
-                    .font(.callout.weight(.medium))
-                Text("Some folders refused to be read. Without Full Disk Access the totals below are a floor, not the whole picture.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                if model.hasFullDiskAccess {
+                    Text("A few folders stayed shut")
+                        .font(.callout.weight(.medium))
+                    Text("\(model.unreadableRoots.count.foldersText) refused to open even with Full Disk Access granted, so their contents are not in the totals below.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("This scan is incomplete")
+                        .font(.callout.weight(.medium))
+                    Text("Some folders refused to be read. Without Full Disk Access the totals below are a floor, not the whole picture.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
 
             Spacer(minLength: 8)
 
-            Button("Open Settings") { model.openFullDiskAccessSettings() }
-                .controlSize(.small)
+            if !model.hasFullDiskAccess {
+                Button("Open Settings") { model.openFullDiskAccessSettings() }
+                    .controlSize(.small)
+            }
         }
         .padding(12)
         .background(.quaternary, in: .rect(cornerRadius: 10))
@@ -508,7 +525,6 @@ private struct PermissionBanner: View {
         .padding(.top, 10)
     }
 }
-
 
 /// Checking before deleting should not require leaving the app to find out
 /// what a name like "content-v2" actually is.

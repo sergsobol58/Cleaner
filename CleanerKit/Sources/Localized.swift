@@ -14,5 +14,6 @@ func kitString(_ key: String.LocalizationValue) -> String {
 }
 
 public extension Int {
+    var foldersText: String { String(localized: "\(self) folders", bundle: .cleanerKit) }
     var processesText: String { String(localized: "\(self) processes", bundle: .cleanerKit) }
 }

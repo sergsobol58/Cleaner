@@ -387,7 +387,7 @@ final class CleanerModel {
 
     /// A readable root name: ".npm/_cacache" instead of a bare "_cacache".
     func title(for root: URL) -> String {
-        root.pathComponents.suffix(2).joined(separator: "/")
+        RootLabel.text(for: root, home: home)
     }
 
     func describe(_ item: ScanItem) -> String {
