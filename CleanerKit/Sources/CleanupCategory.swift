@@ -30,19 +30,24 @@ public struct CleanupCategory: Identifiable, Sendable, Equatable {
     /// off — measured, not guessed.
     public let minimumIdleDays: Int
     public let selects: ChildSelection
+    /// An SF Symbol. Fifteen categories of plain text give the eye nothing to
+    /// catch on; a symbol is what makes a list scannable rather than read.
+    public let icon: String
 
     /// Added by the user rather than shipped with the app.
     public var isUserDefined: Bool { id.hasPrefix(Self.userPrefix) }
     public static let userPrefix = "user:"
 
     public init(id: String, title: String, consequence: String, roots: [URL],
-                minimumIdleDays: Int = 0, selects: ChildSelection = .everything) {
+                minimumIdleDays: Int = 0, selects: ChildSelection = .everything,
+                icon: String = "folder") {
         self.id = id
         self.title = title
         self.consequence = consequence
         self.roots = roots
         self.minimumIdleDays = minimumIdleDays
         self.selects = selects
+        self.icon = icon
     }
 }
 
@@ -87,7 +92,8 @@ public enum Catalog {
                 id: CleanupCategory.userPrefix + url.path,
                 title: folder.title.isEmpty ? url.lastPathComponent : folder.title,
                 consequence: folder.consequence ?? kitString("A folder you added"),
-                roots: [url])
+                roots: [url],
+                icon: "folder.badge.person.crop")
         }
     }
 
@@ -113,13 +119,15 @@ public enum Catalog {
                 id: "derivedData",
                 title: kitString("Xcode DerivedData"),
                 consequence: kitString("The next build takes longer; projects get reindexed"),
-                roots: [home.appending(path: "Library/Developer/Xcode/DerivedData")]
+                roots: [home.appending(path: "Library/Developer/Xcode/DerivedData")],
+                icon: "hammer"
             ),
             CleanupCategory(
                 id: "xcodePreviews",
                 title: kitString("Xcode previews cache"),
                 consequence: kitString("A preview is built again the first time you open it"),
-                roots: [home.appending(path: "Library/Developer/Xcode/UserData/Previews")]
+                roots: [home.appending(path: "Library/Developer/Xcode/UserData/Previews")],
+                icon: "eye"
             ),
             CleanupCategory(
                 id: "deviceSupport",
@@ -130,7 +138,8 @@ public enum Catalog {
                     home.appending(path: "Library/Developer/Xcode/watchOS DeviceSupport"),
                     home.appending(path: "Library/Developer/Xcode/tvOS DeviceSupport"),
                 ],
-                minimumIdleDays: 1
+                minimumIdleDays: 1,
+                icon: "iphone"
             ),
             CleanupCategory(
                 id: "packageCaches",
@@ -143,7 +152,8 @@ public enum Catalog {
                     home.appending(path: "Library/Caches/pip"),
                     home.appending(path: "Library/Caches/CocoaPods"),
                     home.appending(path: ".gradle/caches"),
-                ]
+                ],
+                icon: "shippingbox"
             ),
             // Not the whole workspace: `state` and `locks` are what a run in
             // flight needs, and they are tiny. Everything else here is build
@@ -161,7 +171,8 @@ public enum Catalog {
                         ["DerivedData", "test-products", "result-bundles", "logs"]
                             .map { workspace.appending(path: $0) }
                     },
-                minimumIdleDays: 1
+                minimumIdleDays: 1,
+                icon: "flask"
             ),
             CleanupCategory(
                 id: "swiftPM",
@@ -171,7 +182,8 @@ public enum Catalog {
                     home.appending(path: "Library/Caches/org.swift.swiftpm"),
                     home.appending(path: ".cache/swifterpm"),
                     home.appending(path: "Library/Developer/Xcode/DocumentationCache"),
-                ]
+                ],
+                icon: "cube.box"
             ),
             CleanupCategory(
                 id: "appCaches",
@@ -183,20 +195,23 @@ public enum Catalog {
                     "typescript", "node-gyp", "electron", "Cypress",
                     "com.openai.codex", "antigravity-updater",
                     "notion-updater", "Jedi", "com.apple.helpd", "GeoServices",
-                ].map { home.appending(path: "Library/Caches/\($0)") }
+                ].map { home.appending(path: "Library/Caches/\($0)") },
+                icon: "app.badge"
             ),
             CleanupCategory(
                 id: "agentBuilds",
                 title: kitString("Simulator builds made by Claude"),
                 consequence: kitString("Recreated the next time the app is built"),
-                roots: [home.appending(path: "Library/Application Support/Claude/simulator-builds")]
+                roots: [home.appending(path: "Library/Application Support/Claude/simulator-builds")],
+                icon: "building.2"
             ),
             CleanupCategory(
                 id: "agentVM",
                 title: kitString("Claude sandbox virtual machine"),
                 consequence: kitString("Several gigabytes will be downloaded again on next use"),
                 roots: [home.appending(path: "Library/Application Support/Claude/vm_bundles")],
-                minimumIdleDays: 7
+                minimumIdleDays: 7,
+                icon: "server.rack"
             ),
             // A search by name rather than a list of applications: the same
             // handful of directory names covers every Chromium and Electron
@@ -210,7 +225,8 @@ public enum Catalog {
                     .flatMap { find(named: chromiumCacheNames, under: $0,
                                     depth: 3, listing: listing) }
                     + ["Code/CachedExtensionVSIXs", "Code/CachedData"]
-                        .map { home.appending(path: "Library/Application Support/\($0)") }
+                        .map { home.appending(path: "Library/Application Support/\($0)") },
+                icon: "macwindow"
             ),
             CleanupCategory(
                 id: "sandboxedAppCaches",
@@ -218,7 +234,8 @@ public enum Catalog {
                 consequence: kitString("Applications rebuild these on next launch"),
                 roots: listing(home.appending(path: "Library/Containers"))
                     .filter { claimed($0, by: installed) }
-                    .map { $0.appending(path: "Data/Library/Caches") }
+                    .map { $0.appending(path: "Data/Library/Caches") },
+                icon: "lock.square"
             ),
             CleanupCategory(
                 id: "modelCaches",
@@ -229,13 +246,15 @@ public enum Catalog {
                     home.appending(path: ".cache/codex-runtimes"),
                     home.appending(path: ".cache/uv"),
                 ],
-                minimumIdleDays: 7
+                minimumIdleDays: 7,
+                icon: "brain"
             ),
             CleanupCategory(
                 id: "logs",
                 title: kitString("Application logs"),
                 consequence: kitString("Only useful while diagnosing a problem"),
-                roots: [home.appending(path: "Library/Logs")]
+                roots: [home.appending(path: "Library/Logs")],
+                icon: "doc.text"
             ),
             // Only directories macOS names by bundle identifier: a folder
             // called "Notion" cannot be checked against anything, and
@@ -251,7 +270,8 @@ public enum Catalog {
                     "Library/Application Support", "Library/HTTPStorages",
                     "Library/Saved Application State",
                 ].map { home.appending(path: $0) },
-                selects: .orphanedApplications
+                selects: .orphanedApplications,
+                icon: "questionmark.folder"
             ),
             CleanupCategory(
                 id: "appUpdaters",
@@ -259,7 +279,8 @@ public enum Catalog {
                 consequence: kitString("Installers for updates already applied; downloaded again if needed"),
                 roots: listing(home.appending(path: "Library/Caches"))
                     .filter { $0.lastPathComponent.hasSuffix(".ShipIt") },
-                minimumIdleDays: 1
+                minimumIdleDays: 1,
+                icon: "arrow.down.circle"
             ),
         ]
     }

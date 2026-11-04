@@ -77,6 +77,14 @@ final class CatalogTests: XCTestCase {
         }
     }
 
+    /// A category that forgets its symbol falls back to a generic folder and
+    /// looks like every other one, which defeats the point of having symbols.
+    func testEveryCategoryCarriesItsOwnSymbol() {
+        let symbols = categories().map(\.icon)
+        XCTAssertFalse(symbols.contains("folder"), "a category is using the fallback")
+        XCTAssertEqual(Set(symbols).count, symbols.count, "two categories share a symbol")
+    }
+
     func testUpdaterCategoryTakesOnlyShipItDirectories() {
         let caches = home.appendingPathComponent("Library/Caches")
         let found = Catalog.standard(home: home, listing: { _ in [

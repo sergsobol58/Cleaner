@@ -36,7 +36,12 @@ let project = Project(
             sources: ["Cleaner/Sources/**"],
             resources: ["Cleaner/Resources/**"],
             entitlements: entitlements,
-            dependencies: [.target(name: "CleanerKit")]
+            dependencies: [.target(name: "CleanerKit")],
+            settings: .settings(base: [
+                // The icon is a blue gradient; the interface should agree
+                // with it rather than fall back to the system default.
+                "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
+            ])
         ),
         .target(
             name: "CleanerKitTests",

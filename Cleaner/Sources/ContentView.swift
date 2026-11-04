@@ -5,25 +5,85 @@ import SwiftUI
 struct ContentView: View {
     @Bindable var model: CleanerModel
     @Bindable var system: SystemModel
-    @State private var section: Section = .files
+    @State private var section: Section = .overview
     @State private var refusal: FolderRejection?
 
-    private enum Section: Hashable, CaseIterable {
-        case files, memory, processor, simulators
+    /// Grouped rather than listed flat: four peers in a row gave no hint
+    /// that two of them are about the disk and two about what is running.
+    enum Section: Hashable, CaseIterable, Identifiable {
+        case overview, files, simulators, memory, processor
+
+        var id: Self { self }
 
         var title: LocalizedStringKey {
             switch self {
+            case .overview: "Overview"
             case .files: "Files"
+            case .simulators: "Simulators"
             case .memory: "Memory"
             case .processor: "Processor"
-            case .simulators: "Simulators"
             }
         }
+
+        var symbol: String {
+            switch self {
+            case .overview: "square.grid.2x2"
+            case .files: "internaldrive"
+            case .simulators: "iphone"
+            case .memory: "memorychip"
+            case .processor: "cpu"
+            }
+        }
+
+        static let disk: [Section] = [.files, .simulators]
+        static let system: [Section] = [.memory, .processor]
     }
 
     var body: some View {
+        NavigationSplitView {
+            sidebar
+        } detail: {
+            detail
+        }
+        .frame(minWidth: 820, minHeight: 520)
+        .alert("That folder cannot be added", isPresented: Binding(
+            get: { refusal != nil }, set: { if !$0 { refusal = nil } }
+        ), presenting: refusal) { _ in
+            Button("OK") { refusal = nil }
+        } message: { rejection in
+            Text(rejection.reason)
+        }
+        .task { await model.scanIfNeeded() }
+        .sheet(isPresented: $model.isConfirming) { confirmation }
+    }
+
+    private var sidebar: some View {
+        List(selection: $section) {
+            Label(Section.overview.title, systemImage: Section.overview.symbol)
+                .tag(Section.overview)
+
+            SwiftUI.Section("Disk") {
+                ForEach(Section.disk) { item in
+                    Label(item.title, systemImage: item.symbol).tag(item)
+                }
+            }
+
+            SwiftUI.Section("System") {
+                ForEach(Section.system) { item in
+                    Label(item.title, systemImage: item.symbol).tag(item)
+                }
+            }
+        }
+        .listStyle(.sidebar)
+        .navigationSplitViewColumnWidth(min: 180, ideal: 200, max: 260)
+    }
+
+    @ViewBuilder
+    private var detail: some View {
         Group {
             switch section {
+            case .overview:
+                OverviewView(model: model, system: system) { section = $0 }
             case .files:
                 VStack(spacing: 0) {
                     if model.isUnderReporting { PermissionBanner(model: model) }
@@ -41,33 +101,21 @@ struct ContentView: View {
                 SimulatorsView(model: model)
             }
         }
-        .frame(minWidth: 620, minHeight: 440)
-        .alert("That folder cannot be added", isPresented: Binding(
-            get: { refusal != nil }, set: { if !$0 { refusal = nil } }
-        ), presenting: refusal) { _ in
-            Button("OK") { refusal = nil }
-        } message: { rejection in
-            Text(rejection.reason)
-        }
+        .navigationTitle(section.title)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Button {
-                    if let folder = chooseFolder() { refusal = model.addFolder(folder) }
-                } label: {
-                    Label("Add a folder…", systemImage: "folder.badge.plus")
+            // Adding a folder is a thing you do to the file catalogue, so it
+            // has no business being on screen anywhere else.
+            if section == .files {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        if let folder = chooseFolder() { refusal = model.addFolder(folder) }
+                    } label: {
+                        Label("Add a folder…", systemImage: "folder.badge.plus")
+                    }
+                    .help("Watch a folder of your own")
                 }
-                .help("Watch a folder of your own")
-            }
-            ToolbarItem(placement: .principal) {
-                Picker("", selection: $section) {
-                    ForEach(Section.allCases, id: \.self) { Text($0.title).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .labelsHidden()
             }
         }
-        .task { await model.scanIfNeeded() }
-        .sheet(isPresented: $model.isConfirming) { confirmation }
     }
 
     @ViewBuilder
@@ -115,6 +163,23 @@ struct ContentView: View {
                        trashBytes: model.trashBytes,
                        onOpenTrash: { model.openTrash() },
                        onRescan: { Task { await model.scan() } })
+        case .results where model.foundBytes == 0:
+            centered {
+                Image(systemName: "checkmark.seal")
+                    .font(.system(size: 34))
+                    .foregroundStyle(.green)
+                    .frame(width: 88, height: 88)
+                    .glassEffect(.regular.tint(.green.opacity(0.18)), in: .circle)
+                Text("Nothing to clean").font(.title3.bold())
+                Text("Every category came back empty. There is no junk here to move.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 360)
+                Button("Scan again") { Task { await model.scan() } }
+                    .buttonStyle(.glass)
+                    .padding(.top, 4)
+            }
         case .results:
             categoryList
         }
@@ -183,6 +248,8 @@ struct ContentView: View {
             Button("Move to Trash…") {
                 model.isConfirming = true
             }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
             .keyboardShortcut(.defaultAction)
             .disabled(!model.canRemove)
         }
@@ -280,14 +347,22 @@ private struct CategoryHeader: View {
     let model: CleanerModel
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(spacing: 10) {
             TriStateBox(coverage: model.coverage(of: scan.items)) {
                 model.toggleAll(scan.items)
             }
             .disabled(scan.items.isEmpty)
 
+            Image(systemName: scan.category.icon)
+                .font(.system(size: 14))
+                .foregroundStyle(scan.items.isEmpty ? AnyShapeStyle(.tertiary)
+                                                    : AnyShapeStyle(.tint))
+                .frame(width: 30, height: 30)
+                .background(.quaternary.opacity(scan.items.isEmpty ? 0.4 : 1),
+                            in: .rect(cornerRadius: 7))
+
             VStack(alignment: .leading, spacing: 2) {
-                Text(scan.category.title)
+                Text(scan.category.title).font(.body.weight(.medium))
                 // An unreadable folder outranks the count: a category can
                 // hold one finding and still be hiding hundreds of folders.
                 Group {
@@ -305,10 +380,11 @@ private struct CategoryHeader: View {
             }
             Spacer()
             Text(scan.totalBytes.formattedBytes)
+                .font(.body.weight(.medium))
                 .monospacedDigit()
                 .foregroundStyle(scan.items.isEmpty ? .tertiary : .primary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 7)
         .contextMenu {
             if scan.category.isUserDefined {
                 Button("Stop watching this folder") { model.removeFolder(scan.category) }
