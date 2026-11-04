@@ -19,7 +19,13 @@ struct ContentView: View {
                 .navigationTitle(navigation.section.title)
         }
         .frame(minWidth: 820, minHeight: 520)
-        .containerBackground(Palette.window(scheme, plain: plain), for: .window)
+        // Not .containerBackground(for: .window): making the window's
+        // background our own turns on a full-size content view, and the
+        // content then starts at the window's very top with the title bar
+        // floating over it — search field, banner and first row all hidden
+        // behind the chrome. A plain background paints the same gradient
+        // without touching how the window is laid out.
+        .background(Palette.window(scheme, plain: plain))
         // Declared on the window, not on the detail. Hanging it off a view
         // that is replaced on every section switch takes the whole toolbar
         // out of the window and back in, and the sidebar loses the inset
